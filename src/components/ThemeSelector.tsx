@@ -42,7 +42,7 @@ export default function ThemeSelector() {
           ) : mode === "blue" ? (
             <WaterDropIcon sx={{ color: "#0B5ED7" }} />
           ) : (
-            <PaletteIcon sx={{ color: "#8B3D1F" }} />
+            <PaletteIcon sx={{ color: "#0F766E" }} />
           )}
         </IconButton>
       </Tooltip>
@@ -59,7 +59,7 @@ export default function ThemeSelector() {
       >
         <MenuItem onClick={() => handleSelect("light")} selected={mode === "light"}>
           <ListItemIcon>
-            <LightModeIcon fontSize="small" sx={{ color: "#8B3D1F" }} />
+            <LightModeIcon fontSize="small" sx={{ color: "#0F766E" }} />
           </ListItemIcon>
           <ListItemText>Modo Claro</ListItemText>
           {mode === "light" && <CheckIcon fontSize="small" color="primary" />}

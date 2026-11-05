@@ -50,7 +50,7 @@ export default function LoginView({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#FBF8F5",
+        backgroundColor: "background.default",
         px: 2,
         py: 4,
       }}
@@ -60,8 +60,7 @@ export default function LoginView({
           sx={{
             p: 2,
             borderRadius: 4,
-            boxShadow: "0 8px 30px rgba(139, 61, 31, 0.08)",
-            border: "1px solid rgba(139, 61, 31, 0.12)",
+            boxShadow: "0 8px 30px rgba(15, 118, 110, 0.08)",
           }}
         >
           <CardContent sx={{ textAlign: "center", pt: 2 }}>
@@ -70,26 +69,26 @@ export default function LoginView({
                 width: 64,
                 height: 64,
                 borderRadius: "50%",
-                backgroundColor: "#8B3D1F",
-                color: "#FFFFFF",
+                backgroundColor: "primary.main",
+                color: "primary.contrastText",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 mx: "auto",
                 mb: 2,
-                boxShadow: "0 4px 12px rgba(139, 61, 31, 0.3)",
+                boxShadow: "0 4px 12px rgba(15, 118, 110, 0.25)",
               }}
             >
               <FitnessCenterIcon sx={{ fontSize: 32 }} />
             </Box>
 
-            <Typography variant="h5" sx={{ fontWeight: 800, color: "#251A14", mb: 0.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: "text.primary", mb: 0.5 }}>
               Payment Academy
             </Typography>
-            <Typography variant="subtitle1" sx={{ color: "#8B3D1F", fontWeight: 700, mb: 1 }}>
+            <Typography variant="subtitle1" sx={{ color: "primary.main", fontWeight: 700, mb: 1 }}>
               Control de pagos
             </Typography>
-            <Typography variant="body2" sx={{ color: "#765F52", mb: 3 }}>
+            <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
               Administra tu academia o gimnasio desde un solo lugar.
             </Typography>
 
@@ -116,7 +115,7 @@ export default function LoginView({
                   input: {
                     startAdornment: (
                       <InputAdornment position="start">
-                        <EmailIcon sx={{ color: "#8B3D1F" }} />
+                        <EmailIcon color="primary" />
                       </InputAdornment>
                     ),
                   },
@@ -139,7 +138,7 @@ export default function LoginView({
                   input: {
                     startAdornment: (
                       <InputAdornment position="start">
-                        <LockIcon sx={{ color: "#8B3D1F" }} />
+                        <LockIcon color="primary" />
                       </InputAdornment>
                     ),
                     endAdornment: (
@@ -161,6 +160,7 @@ export default function LoginView({
                 type="submit"
                 fullWidth
                 variant="contained"
+                color="primary"
                 disabled={loading || !email || !password}
                 sx={{
                   mt: 3,
@@ -168,10 +168,6 @@ export default function LoginView({
                   py: 1.5,
                   fontSize: "1rem",
                   fontWeight: 700,
-                  backgroundColor: "#8B3D1F",
-                  "&:hover": {
-                    backgroundColor: "#5C2611",
-                  },
                 }}
               >
                 {loading ? <CircularProgress size={24} color="inherit" /> : "Ingresar"}
@@ -183,4 +179,3 @@ export default function LoginView({
     </Box>
   );
 }
-

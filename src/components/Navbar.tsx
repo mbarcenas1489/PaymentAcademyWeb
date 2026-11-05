@@ -46,9 +46,10 @@ export default function Navbar({
       position="sticky"
       elevation={0}
       sx={{
-        backgroundColor: "#FFFFFF",
-        borderBottom: "1px solid rgba(139, 61, 31, 0.12)",
-        color: "#251A14",
+        backgroundColor: "background.paper",
+        borderBottom: 1,
+        borderColor: "divider",
+        color: "text.primary",
       }}
     >
       <Toolbar sx={{ justifyContent: "space-between", py: 1 }}>
@@ -58,8 +59,8 @@ export default function Navbar({
               width: 40,
               height: 40,
               borderRadius: "50%",
-              backgroundColor: "#8B3D1F",
-              color: "#FFFFFF",
+              backgroundColor: "primary.main",
+              color: "primary.contrastText",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -68,7 +69,7 @@ export default function Navbar({
             <FitnessCenterIcon fontSize="small" />
           </Box>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#251A14", lineHeight: 1.2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.2 }}>
               Payment Academy
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -79,7 +80,7 @@ export default function Navbar({
                 sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700 }}
               />
               {userEmail && (
-                <Typography variant="caption" sx={{ color: "#765F52", display: { xs: "none", sm: "inline" } }}>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: { xs: "none", sm: "inline" } }}>
                   {userEmail}
                 </Typography>
               )}
@@ -113,10 +114,6 @@ export default function Navbar({
             startIcon={<AddCircleIcon />}
             onClick={onOpenNewPayment}
             size="small"
-            sx={{
-              backgroundColor: "#8B3D1F",
-              "&:hover": { backgroundColor: "#5C2611" },
-            }}
           >
             Nuevo pago
           </Button>

@@ -6,34 +6,36 @@ export const theme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#8B3D1F",
-      light: "#BC5A36",
-      dark: "#5C2611",
+      main: "#0F766E",
+      light: "#14B8A6",
+      dark: "#094E48",
       contrastText: "#FFFFFF",
     },
     secondary: {
-      main: "#D97736",
+      main: "#10B981",
+      light: "#34D399",
+      dark: "#059669",
       contrastText: "#FFFFFF",
     },
     background: {
-      default: "#FBF8F5",
+      default: "#F0FDF4",
       paper: "#FFFFFF",
     },
     text: {
-      primary: "#251A14",
-      secondary: "#765F52",
+      primary: "#0F2F28",
+      secondary: "#4A6B63",
     },
     success: {
-      main: "#176B3A",
-      light: "#DDF3E4",
+      main: "#10B981",
+      light: "#D1FAE5",
     },
     warning: {
-      main: "#B86200",
-      light: "#FEF3D6",
+      main: "#F59E0B",
+      light: "#FEF3C7",
     },
     error: {
-      main: "#BA1A1A",
-      light: "#FFDAD6",
+      main: "#EF4444",
+      light: "#FEE2E2",
     },
   },
   typography: {
@@ -63,7 +65,7 @@ export const theme = createTheme({
           padding: "8px 20px",
           boxShadow: "none",
           "&:hover": {
-            boxShadow: "0 2px 8px rgba(139, 61, 31, 0.2)",
+            boxShadow: "0 2px 8px rgba(15, 118, 110, 0.25)",
           },
         },
       },
@@ -72,8 +74,8 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          boxShadow: "0 2px 12px rgba(37, 26, 20, 0.06)",
-          border: "1px solid rgba(139, 61, 31, 0.08)",
+          boxShadow: "0 2px 12px rgba(15, 47, 40, 0.05)",
+          border: "1px solid rgba(15, 118, 110, 0.1)",
         },
       },
     },
@@ -98,4 +100,3 @@ export const theme = createTheme({
     },
   },
 });
-

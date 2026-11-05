@@ -61,10 +61,10 @@ export default function SummaryTab({
       <Card
         sx={{
           mb: 3,
-          background: "linear-gradient(135deg, #8B3D1F 0%, #A04724 100%)",
+          background: "linear-gradient(135deg, #0F766E 0%, #10B981 100%)",
           color: "#FFFFFF",
           borderRadius: 4,
-          boxShadow: "0 6px 20px rgba(139, 61, 31, 0.25)",
+          boxShadow: "0 6px 20px rgba(15, 118, 110, 0.25)",
         }}
       >
         <CardContent sx={{ p: 3 }}>
@@ -92,7 +92,7 @@ export default function SummaryTab({
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "#8B3D1F" }} />
+                  <SearchIcon color="primary" />
                 </InputAdornment>
               ),
             },
@@ -116,12 +116,12 @@ export default function SummaryTab({
         </Box>
       ) : summaries.length === 0 ? (
         /* Empty state */
-        <Card sx={{ p: 5, textAlign: "center", backgroundColor: "#FFFFFF", borderRadius: 4 }}>
-          <PersonIcon sx={{ fontSize: 48, color: "#765F52", mb: 1, opacity: 0.5 }} />
-          <Typography variant="h6" sx={{ color: "#251A14", fontWeight: 700 }}>
+        <Card sx={{ p: 5, textAlign: "center", backgroundColor: "background.paper", borderRadius: 4 }}>
+          <PersonIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.5 }} />
+          <Typography variant="h6" sx={{ color: "text.primary", fontWeight: 700 }}>
             {searchQuery ? "No se encontraron miembros" : "Aún no hay miembros registrados"}
           </Typography>
-          <Typography variant="body2" sx={{ color: "#765F52", mt: 0.5, mb: 2 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5, mb: 2 }}>
             {searchQuery
               ? "Prueba buscando con otro término o número de documento."
               : "Registra tu primer miembro para comenzar a controlar los pagos."}
@@ -130,7 +130,6 @@ export default function SummaryTab({
             variant="contained"
             color="primary"
             onClick={onOpenNewMember}
-            sx={{ backgroundColor: "#8B3D1F" }}
           >
             Registrar nuevo miembro
           </Button>
@@ -166,8 +165,8 @@ export default function SummaryTab({
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                         <Avatar
                           sx={{
-                            bgcolor: "#8B3D1F",
-                            color: "#FFFFFF",
+                            bgcolor: "primary.main",
+                            color: "primary.contrastText",
                             fontWeight: 700,
                             width: 44,
                             height: 44,
@@ -176,10 +175,10 @@ export default function SummaryTab({
                           {m.fullName.charAt(0).toUpperCase()}
                         </Avatar>
                         <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#251A14", lineHeight: 1.2 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary", lineHeight: 1.2 }}>
                             {m.fullName}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: "#765F52" }}>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
                             {[m.documentNumber, m.phone, m.email].filter(Boolean).join(" · ") || "Sin datos de contacto"}
                           </Typography>
                         </Box>
@@ -193,16 +192,16 @@ export default function SummaryTab({
                           fontSize: "0.75rem",
                           backgroundColor:
                             m.memberStatus === "active"
-                              ? "#DDF3E4"
+                              ? "#D1FAE5"
                               : m.memberStatus === "frozen"
-                              ? "#FEF3D6"
-                              : "#FCE8E6",
+                              ? "#FEF3C7"
+                              : "#FEE2E2",
                           color:
                             m.memberStatus === "active"
-                              ? "#176B3A"
+                              ? "#065F46"
                               : m.memberStatus === "frozen"
-                              ? "#8A5800"
-                              : "#BA1A1A",
+                              ? "#B45309"
+                              : "#B91C1C",
                         }}
                       />
                     </Box>
@@ -210,9 +209,9 @@ export default function SummaryTab({
                     <Divider sx={{ my: 1.5 }} />
 
                     {/* Last Payment section */}
-                    <Box sx={{ backgroundColor: "#FBF8F5", p: 1.5, borderRadius: 2 }}>
+                    <Box sx={{ backgroundColor: "action.hover", p: 1.5, borderRadius: 2 }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: "#765F52", textTransform: "uppercase" }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                           Último pago
                         </Typography>
 
@@ -235,16 +234,16 @@ export default function SummaryTab({
                               fontWeight: 700,
                               backgroundColor:
                                 validity.status === "current"
-                                  ? "#DDF3E4"
+                                  ? "#D1FAE5"
                                   : validity.status === "upcoming"
-                                  ? "#FEF3D6"
-                                  : "#FCE8E6",
+                                  ? "#FEF3C7"
+                                  : "#FEE2E2",
                               color:
                                 validity.status === "current"
-                                  ? "#176B3A"
+                                  ? "#065F46"
                                   : validity.status === "upcoming"
-                                  ? "#8A5800"
-                                  : "#BA1A1A",
+                                  ? "#B45309"
+                                  : "#B91C1C",
                             }}
                           />
                         )}
@@ -252,18 +251,18 @@ export default function SummaryTab({
 
                       {hasPayment ? (
                         <>
-                          <Typography variant="h6" sx={{ fontWeight: 800, color: "#251A14" }}>
+                          <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
                             {formatCurrency(m.lastAmount)}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: "#765F52" }}>
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
                             {getPaymentTypeLabel(m.lastPaymentType)} · {getPaymentMethodLabel(m.lastPaymentMethod)}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: "#765F52", display: "block", mt: 0.5 }}>
+                          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
                             Pagado: {formatDate(m.lastPaidOn)} · Vigencia hasta: {formatDate(m.lastValidUntil)}
                           </Typography>
                         </>
                       ) : (
-                        <Typography variant="body2" sx={{ color: "#765F52", fontStyle: "italic", py: 0.5 }}>
+                        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic", py: 0.5 }}>
                           Sin pagos registrados
                         </Typography>
                       )}
@@ -284,14 +283,11 @@ export default function SummaryTab({
                       <Button
                         size="small"
                         variant="contained"
+                        color="primary"
                         startIcon={<PaymentIcon />}
                         onClick={() => onNewPaymentForMember(m)}
                         fullWidth
-                        sx={{
-                          fontSize: "0.8rem",
-                          backgroundColor: "#8B3D1F",
-                          "&:hover": { backgroundColor: "#5C2611" },
-                        }}
+                        sx={{ fontSize: "0.8rem" }}
                       >
                         Registrar pago
                       </Button>

@@ -16,11 +16,11 @@ export function useReceipt() {
       if (!ctx) return canvas;
 
       // Background
-      ctx.fillStyle = "#FFF8F2";
+      ctx.fillStyle = "#F0FDF4";
       ctx.fillRect(0, 0, width, height);
 
       // Top banner
-      ctx.fillStyle = "#8B3D1F";
+      ctx.fillStyle = "#0F766E";
       ctx.fillRect(0, 0, width, 260);
 
       // Icon circle
@@ -30,7 +30,7 @@ export function useReceipt() {
       ctx.fill();
 
       // Checkmark icon
-      ctx.strokeStyle = "#8B3D1F";
+      ctx.strokeStyle = "#0F766E";
       ctx.lineWidth = 12;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -50,13 +50,13 @@ export function useReceipt() {
       ctx.fillText("COMPROBANTE DE PAGO", 190, 157);
 
       ctx.font = "28px system-ui, sans-serif";
-      ctx.fillStyle = "#FFE0D3";
+      ctx.fillStyle = "#CCFBF1";
       ctx.fillText("Pago recibido correctamente", 190, 207);
 
       if (data.receiptNumber) {
         ctx.textAlign = "right";
         ctx.font = "bold 24px monospace, sans-serif";
-        ctx.fillStyle = "#FFE0D3";
+        ctx.fillStyle = "#CCFBF1";
         ctx.fillText(`N.º ${data.receiptNumber.slice(0, 8).toUpperCase()}`, 970, 235);
       }
 
@@ -84,16 +84,16 @@ export function useReceipt() {
       // TOTAL PAGADO
       ctx.textAlign = "center";
       ctx.font = "bold 27px system-ui, sans-serif";
-      ctx.fillStyle = "#765F52";
+      ctx.fillStyle = "#4A6B63";
       ctx.fillText("TOTAL PAGADO", 540, 395);
 
       // Amount
       ctx.font = "bold 67px system-ui, sans-serif";
-      ctx.fillStyle = "#251A14";
+      ctx.fillStyle = "#0F2F28";
       ctx.fillText(formatCurrency(data.amount), 540, 480);
 
       // Confirmation pill
-      ctx.fillStyle = "#DDF3E4";
+      ctx.fillStyle = "#D1FAE5";
       const pillX = 390;
       const pillY = 515;
       const pillW = 300;
@@ -114,11 +114,11 @@ export function useReceipt() {
       ctx.fill();
 
       ctx.font = "bold 23px system-ui, sans-serif";
-      ctx.fillStyle = "#176B3A";
+      ctx.fillStyle = "#065F46";
       ctx.fillText("PAGO CONFIRMADO", 540, 555);
 
       // Divider line
-      ctx.strokeStyle = "#E8DCD4";
+      ctx.strokeStyle = "#E6F4F1";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(105, 625);
@@ -131,11 +131,11 @@ export function useReceipt() {
 
       const drawRow = (label: string, value: string) => {
         ctx.font = "bold 23px system-ui, sans-serif";
-        ctx.fillStyle = "#765F52";
+        ctx.fillStyle = "#4A6B63";
         ctx.fillText(label, 115, y);
 
         ctx.font = "33px system-ui, sans-serif";
-        ctx.fillStyle = "#251A14";
+        ctx.fillStyle = "#0F2F28";
         ctx.fillText(value, 115, y + 48);
         y += 112;
       };
@@ -156,7 +156,7 @@ export function useReceipt() {
       // Footer
       ctx.textAlign = "center";
       ctx.font = "27px system-ui, sans-serif";
-      ctx.fillStyle = "#765F52";
+      ctx.fillStyle = "#4A6B63";
       ctx.fillText("Gracias por tu pago", 540, 1815);
 
       ctx.font = "20px system-ui, sans-serif";

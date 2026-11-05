@@ -50,34 +50,34 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
         palette: {
           mode: "dark",
           primary: {
-            main: "#E88960",
-            light: "#FFB08E",
-            dark: "#B85B33",
-            contrastText: "#1A0E08",
+            main: "#2DD4BF",
+            light: "#5EEAD4",
+            dark: "#0F766E",
+            contrastText: "#042F2C",
           },
           secondary: {
-            main: "#EAA66D",
-            contrastText: "#1A0E08",
+            main: "#34D399",
+            contrastText: "#042F2C",
           },
           background: {
-            default: "#121214",
-            paper: "#1E1E22",
+            default: "#0B1715",
+            paper: "#132522",
           },
           text: {
-            primary: "#F5ECE6",
-            secondary: "#B8A398",
+            primary: "#F0FDF9",
+            secondary: "#85A8A0",
           },
           success: {
-            main: "#4CAF50",
-            light: "#1B3B22",
+            main: "#34D399",
+            light: "#064E3B",
           },
           warning: {
-            main: "#FFB74D",
-            light: "#3E2B14",
+            main: "#FBBF24",
+            light: "#451A03",
           },
           error: {
-            main: "#EF5350",
-            light: "#3E1A1A",
+            main: "#F87171",
+            light: "#450A0A",
           },
         },
         shape: { borderRadius: 12 },
@@ -95,7 +95,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
             styleOverrides: {
               root: {
                 borderRadius: 16,
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(45, 212, 191, 0.12)",
                 backgroundImage: "none",
               },
             },
@@ -173,39 +173,41 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
-    // Default: Light mode
+    // Default: Opción 2 - Verde Teal & Esmeralda Deportivo
     return createTheme({
       palette: {
         mode: "light",
         primary: {
-          main: "#8B3D1F",
-          light: "#BC5A36",
-          dark: "#5C2611",
+          main: "#0F766E",
+          light: "#14B8A6",
+          dark: "#094E48",
           contrastText: "#FFFFFF",
         },
         secondary: {
-          main: "#D97736",
+          main: "#10B981",
+          light: "#34D399",
+          dark: "#059669",
           contrastText: "#FFFFFF",
         },
         background: {
-          default: "#FBF8F5",
+          default: "#F0FDF4",
           paper: "#FFFFFF",
         },
         text: {
-          primary: "#251A14",
-          secondary: "#765F52",
+          primary: "#0F2F28",
+          secondary: "#4A6B63",
         },
         success: {
-          main: "#176B3A",
-          light: "#DDF3E4",
+          main: "#10B981",
+          light: "#D1FAE5",
         },
         warning: {
-          main: "#B86200",
-          light: "#FEF3D6",
+          main: "#F59E0B",
+          light: "#FEF3C7",
         },
         error: {
-          main: "#BA1A1A",
-          light: "#FFDAD6",
+          main: "#EF4444",
+          light: "#FEE2E2",
         },
       },
       shape: { borderRadius: 12 },
@@ -216,15 +218,22 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
       components: {
         MuiButton: {
           styleOverrides: {
-            root: { borderRadius: 24, padding: "8px 20px" },
+            root: {
+              borderRadius: 24,
+              padding: "8px 20px",
+              boxShadow: "none",
+              "&:hover": {
+                boxShadow: "0 2px 8px rgba(15, 118, 110, 0.25)",
+              },
+            },
           },
         },
         MuiCard: {
           styleOverrides: {
             root: {
               borderRadius: 16,
-              border: "1px solid rgba(139, 61, 31, 0.08)",
-              boxShadow: "0 2px 12px rgba(37, 26, 20, 0.06)",
+              border: "1px solid rgba(15, 118, 110, 0.1)",
+              boxShadow: "0 2px 12px rgba(15, 47, 40, 0.05)",
             },
           },
         },
@@ -246,4 +255,3 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     </ThemeContext.Provider>
   );
 }
-

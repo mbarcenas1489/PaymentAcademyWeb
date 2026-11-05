@@ -80,7 +80,7 @@ npm run dev
 ### 5. Abrir en tu Navegador
 Una vez iniciado el servidor, abre tu navegador web favorito y entra a:
 
-👉 **[http://localhost:3000](http://localhost:3000)**
+👉 **[http://localhost:3001](http://localhost:3001)**
 
 ---
 
@@ -88,9 +88,9 @@ Una vez iniciado el servidor, abre tu navegador web favorito y entra a:
 
 | Comando | Descripción |
 | :--- | :--- |
-| `npm run dev` | Inicia el servidor de desarrollo local con recarga en caliente (HMR). |
+| `npm run dev` | Inicia el servidor de desarrollo local en el puerto 3001 (`http://localhost:3001`). |
 | `npm run build` | Compila y optimiza la aplicación para producción con verificación de tipos TypeScript. |
-| `npm start` | Inicia la versión compilada de producción en el puerto 3000. |
+| `npm start` | Inicia la versión compilada de producción en el puerto 3001. |
 | `npm run lint` | Ejecuta ESLint para analizar la calidad del código. |
 
 ---
