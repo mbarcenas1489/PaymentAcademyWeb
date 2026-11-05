@@ -1,0 +1,327 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { PaymentSummary, PaymentDraft } from "@/types";
+
+export function usePayments(
+  organizationId: string | null,
+  options?: {
+    initialFromDate?: string;
+    initialToDate?: string;
+    memberId?: string | null;
+  }
+) {
+  const [payments, setPayments] = useState<PaymentSummary[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [fromDate, setFromDate] = useState<string>(options?.initialFromDate || "");
+  const [toDate, setToDate] = useState<string>(options?.initialToDate || "");
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(
+    options?.memberId || null
+  );
+
+  const supabase = createClient();
+
+  const fetchPayments = useCallback(async () => {
+    if (!organizationId) {
+      setPayments([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      let query = supabase
+        .from("payments")
+        .select(`
+          id,
+          organization_id,
+          member_id,
+          amount,
+          paid_on,
+          payment_type,
+          payment_method,
+          valid_from,
+          valid_until,
+          reference,
+          notes,
+          created_at,
+          members (
+            full_name,
+            document_number
+          )
+        `)
+        .eq("organization_id", organizationId)
+        .order("paid_on", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (fromDate) {
+        query = query.gte("paid_on", fromDate);
+      }
+      if (toDate) {
+        query = query.lte("paid_on", toDate);
+      }
+      if (selectedMemberId) {
+        query = query.eq("member_id", selectedMemberId);
+      }
+
+      const { data, error: queryError } = await query;
+
+      if (queryError) throw queryError;
+
+      const formatted: PaymentSummary[] = (data || []).map((p: any) => ({
+        id: p.id,
+        organization_id: p.organization_id,
+        member_id: p.member_id,
+        amount: Number(p.amount) || 0,
+        paid_on: p.paid_on,
+        payment_type: p.payment_type,
+        payment_method: p.payment_method,
+        valid_from: p.valid_from,
+        valid_until: p.valid_until,
+        reference: p.reference,
+        notes: p.notes,
+        created_at: p.created_at,
+        memberName: p.members?.full_name || "Desconocido",
+        memberDocument: p.members?.document_number || null,
+      }));
+
+      setPayments(formatted);
+    } catch (err: any) {
+      setError(err?.message || "Error al cargar los pagos");
+    } finally {
+      setLoading(false);
+    }
+  }, [organizationId, fromDate, toDate, selectedMemberId, supabase]);
+
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
+
+  const checkValidityOverlap = useCallback(
+    async (
+      memberId: string,
+      validFrom: string,
+      validUntil: string,
+      excludedPaymentId?: string | null
+    ): Promise<boolean> => {
+      if (!organizationId) return false;
+
+      let query = supabase
+        .from("payments")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .eq("member_id", memberId)
+        .lte("valid_from", validUntil)
+        .gte("valid_until", validFrom);
+
+      if (excludedPaymentId) {
+        query = query.neq("id", excludedPaymentId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []).length > 0;
+    },
+    [organizationId, supabase]
+  );
+
+  const createPayment = useCallback(
+    async (draft: PaymentDraft): Promise<string | null> => {
+      if (!organizationId) {
+        setError("Organización no identificada");
+        return null;
+      }
+
+      setSaving(true);
+      setError(null);
+      try {
+        const hasOverlap = await checkValidityOverlap(
+          draft.memberId,
+          draft.validFrom,
+          draft.validUntil
+        );
+
+        if (hasOverlap) {
+          throw new Error(
+            "Ya existe un pago para este miembro dentro del período de vigencia seleccionado."
+          );
+        }
+
+        const newPayment = {
+          organization_id: organizationId,
+          member_id: draft.memberId,
+          amount: draft.amount,
+          paid_on: draft.paidOn,
+          payment_type: draft.paymentType,
+          payment_method: draft.paymentMethod,
+          valid_from: draft.validFrom,
+          valid_until: draft.validUntil,
+          reference: draft.reference?.trim() || null,
+          notes: draft.notes?.trim() || null,
+        };
+
+        const { data, error: insertError } = await supabase
+          .from("payments")
+          .insert(newPayment)
+          .select("id")
+          .single();
+
+        if (insertError) throw insertError;
+
+        await fetchPayments();
+        return data.id;
+      } catch (err: any) {
+        setError(err?.message || "Error al guardar el pago");
+        return null;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [organizationId, fetchPayments, checkValidityOverlap, supabase]
+  );
+
+  const updatePayment = useCallback(
+    async (paymentId: string, draft: PaymentDraft): Promise<boolean> => {
+      if (!organizationId) {
+        setError("Organización no identificada");
+        return false;
+      }
+
+      setSaving(true);
+      setError(null);
+      try {
+        const hasOverlap = await checkValidityOverlap(
+          draft.memberId,
+          draft.validFrom,
+          draft.validUntil,
+          paymentId
+        );
+
+        if (hasOverlap) {
+          throw new Error(
+            "Ya existe un pago para este miembro dentro del período de vigencia seleccionado."
+          );
+        }
+
+        const updatedData = {
+          member_id: draft.memberId,
+          amount: draft.amount,
+          paid_on: draft.paidOn,
+          payment_type: draft.paymentType,
+          payment_method: draft.paymentMethod,
+          valid_from: draft.validFrom,
+          valid_until: draft.validUntil,
+          reference: draft.reference?.trim() || null,
+          notes: draft.notes?.trim() || null,
+        };
+
+        const { error: updateError } = await supabase
+          .from("payments")
+          .update(updatedData)
+          .eq("id", paymentId)
+          .eq("organization_id", organizationId);
+
+        if (updateError) throw updateError;
+
+        await fetchPayments();
+        return true;
+      } catch (err: any) {
+        setError(err?.message || "Error al actualizar el pago");
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [organizationId, fetchPayments, checkValidityOverlap, supabase]
+  );
+
+  const deletePayment = useCallback(
+    async (paymentId: string): Promise<boolean> => {
+      if (!organizationId) {
+        setError("Organización no identificada");
+        return false;
+      }
+
+      setSaving(true);
+      setError(null);
+      try {
+        const { error: deleteError } = await supabase
+          .from("payments")
+          .delete()
+          .eq("id", paymentId)
+          .eq("organization_id", organizationId);
+
+        if (deleteError) throw deleteError;
+
+        setPayments((prev) => prev.filter((p) => p.id !== paymentId));
+        return true;
+      } catch (err: any) {
+        setError(err?.message || "Error al eliminar el pago");
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [organizationId, supabase]
+  );
+
+  // Compute monthly total for current calendar month
+  const [currentMonthTotal, setCurrentMonthTotal] = useState<number>(0);
+
+  const fetchMonthTotal = useCallback(async () => {
+    if (!organizationId) return;
+    try {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const monthStart = `${year}-${month}-01`;
+      const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+      const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
+
+      const { data, error } = await supabase
+        .from("payments")
+        .select("amount")
+        .eq("organization_id", organizationId)
+        .gte("paid_on", monthStart)
+        .lte("paid_on", monthEnd);
+
+      if (error) throw error;
+      const total = (data || []).reduce((acc: number, item: any) => acc + (Number(item.amount) || 0), 0);
+      setCurrentMonthTotal(total);
+    } catch {
+      // silent
+    }
+  }, [organizationId, supabase]);
+
+  useEffect(() => {
+    fetchMonthTotal();
+  }, [fetchMonthTotal, payments]);
+
+  return {
+    payments,
+    loading,
+    saving,
+    error,
+    fromDate,
+    toDate,
+    setFromDate,
+    setToDate,
+    selectedMemberId,
+    setSelectedMemberId,
+    monthlyTotal: currentMonthTotal,
+    createPayment,
+    updatePayment,
+    deletePayment,
+    refreshPayments: () => {
+      fetchPayments();
+      fetchMonthTotal();
+    },
+    clearError: () => setError(null),
+  };
+}
+
