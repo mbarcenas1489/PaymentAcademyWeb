@@ -5,7 +5,8 @@ import { createClient } from "@/utils/supabase/client";
 import { PaymentSettingValue } from "@/types";
 
 const DEFAULT_PAYMENT_SETTING: PaymentSettingValue = {
-  AmountMonth: 20,
+  AmountMonthDollar: 20,
+  AmountMonthCordoba: 750,
   AmountBiweek: 10,
   AmountDay: 3,
 };
@@ -21,7 +22,6 @@ export function useAppConfiguration() {
   const fetchConfiguration = useCallback(async () => {
     setLoading(true);
     try {
-      // Try exact table name "AppConfiguration" first, fallback to lowercase "appconfiguration" if needed
       let rows: Record<string, unknown>[] | null = null;
 
       const { data, error } = await supabase
@@ -59,21 +59,38 @@ export function useAppConfiguration() {
               ? JSON.parse(rawValue)
               : (rawValue as Record<string, unknown>) || {};
 
-          const amountMonth = Number(
-            parsedObj.AmountMonth ?? parsedObj.amountMonth ?? DEFAULT_PAYMENT_SETTING.AmountMonth
+          const amountMonthDollar = Number(
+            parsedObj.AmountMonthDollar ??
+              parsedObj.amountMonthDollar ??
+              parsedObj.AmountMonth ??
+              parsedObj.amountMonth ??
+              DEFAULT_PAYMENT_SETTING.AmountMonthDollar
+          );
+          const amountMonthCordoba = Number(
+            parsedObj.AmountMonthCordoba ??
+              parsedObj.amountMonthCordoba ??
+              DEFAULT_PAYMENT_SETTING.AmountMonthCordoba
           );
           const amountBiweek = Number(
-            parsedObj.AmountBiweek ?? parsedObj.amountBiweek ?? DEFAULT_PAYMENT_SETTING.AmountBiweek
+            parsedObj.AmountBiweek ??
+              parsedObj.amountBiweek ??
+              DEFAULT_PAYMENT_SETTING.AmountBiweek
           );
           const amountDay = Number(
-            parsedObj.AmountDay ?? parsedObj.amountDay ?? DEFAULT_PAYMENT_SETTING.AmountDay
+            parsedObj.AmountDay ??
+              parsedObj.amountDay ??
+              DEFAULT_PAYMENT_SETTING.AmountDay
           );
 
           setPaymentSetting({
-            AmountMonth:
-              !isNaN(amountMonth) && amountMonth > 0
-                ? amountMonth
-                : DEFAULT_PAYMENT_SETTING.AmountMonth,
+            AmountMonthDollar:
+              !isNaN(amountMonthDollar) && amountMonthDollar > 0
+                ? amountMonthDollar
+                : DEFAULT_PAYMENT_SETTING.AmountMonthDollar,
+            AmountMonthCordoba:
+              !isNaN(amountMonthCordoba) && amountMonthCordoba > 0
+                ? amountMonthCordoba
+                : DEFAULT_PAYMENT_SETTING.AmountMonthCordoba,
             AmountBiweek:
               !isNaN(amountBiweek) && amountBiweek > 0
                 ? amountBiweek

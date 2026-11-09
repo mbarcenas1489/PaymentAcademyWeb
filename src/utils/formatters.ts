@@ -1,14 +1,29 @@
-import { PaymentMethod, PaymentType, MemberStatus } from "@/types";
+import { PaymentMethod, PaymentType, MemberStatus, PaymentCurrency } from "@/types";
 
-const currencyFormatter = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  maximumFractionDigits: 0,
+const numberFormatter = new Intl.NumberFormat("es-NI", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
-export const formatCurrency = (amount: number | null | undefined): string => {
-  if (amount == null || isNaN(amount)) return "$ 0";
-  return currencyFormatter.format(amount);
+export const getCurrencySymbol = (
+  currency?: PaymentCurrency | string | null
+): string => {
+  return currency === "USD" ? "$" : "C$";
+};
+
+export const getCurrencyLabel = (
+  currency?: PaymentCurrency | string | null
+): string => {
+  return currency === "USD" ? "Dólares ($)" : "Córdobas (C$)";
+};
+
+export const formatCurrency = (
+  amount: number | null | undefined,
+  currency: PaymentCurrency | string | null | undefined = "NIO"
+): string => {
+  const prefix = getCurrencySymbol(currency);
+  if (amount == null || isNaN(amount)) return `${prefix} 0`;
+  return `${prefix} ${numberFormatter.format(amount)}`;
 };
 
 export const formatDate = (dateString: string | null | undefined): string => {

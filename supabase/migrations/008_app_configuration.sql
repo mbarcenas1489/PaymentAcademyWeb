@@ -40,7 +40,8 @@ insert into public."AppConfiguration" ("SettingName", "value")
 values (
   'PlaymentSetting',
   '{
-    "AmountMonth": 20,
+    "AmountMonthDollar": 20,
+    "AmountMonthCordoba": 750,
     "AmountBiweek": 10,
     "AmountDay": 3
   }'::jsonb

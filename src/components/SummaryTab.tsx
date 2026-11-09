@@ -39,7 +39,8 @@ interface SummaryTabProps {
   summaries: MemberPaymentSummary[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  monthlyTotal: number;
+  monthlyTotalNIO: number;
+  monthlyTotalUSD: number;
   loading: boolean;
   onSelectMemberPayments: (member: MemberPaymentSummary) => void;
   onNewPaymentForMember: (member: MemberPaymentSummary) => void;
@@ -51,7 +52,8 @@ export default function SummaryTab({
   summaries,
   searchQuery,
   onSearchChange,
-  monthlyTotal,
+  monthlyTotalNIO,
+  monthlyTotalUSD,
   loading,
   onSelectMemberPayments,
   onNewPaymentForMember,
@@ -60,7 +62,7 @@ export default function SummaryTab({
 }: SummaryTabProps) {
   return (
     <Box sx={{ py: 2 }}>
-      {/* Monthly Total Card */}
+      {/* Monthly Total Card (Córdobas & Dólares) */}
       <Card
         sx={{
           mb: 3,
@@ -74,11 +76,45 @@ export default function SummaryTab({
           <Typography variant="overline" sx={{ letterSpacing: 1.5, opacity: 0.9 }}>
             TOTAL DE {formatMonthYear().toUpperCase()}
           </Typography>
-          <Typography variant="h3" sx={{ fontWeight: 800, mt: 0.5, mb: 1 }}>
-            {formatCurrency(monthlyTotal)}
-          </Typography>
+
+          <Grid container spacing={2} sx={{ mt: 0.5, mb: 1 }}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 3,
+                  backgroundColor: "rgba(255, 255, 255, 0.14)",
+                }}
+              >
+                <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 700, display: "block" }}>
+                  TOTAL EN CÓRDOBAS (NIO)
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+                  {formatCurrency(monthlyTotalNIO, "NIO")}
+                </Typography>
+              </Box>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 3,
+                  backgroundColor: "rgba(255, 255, 255, 0.14)",
+                }}
+              >
+                <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 700, display: "block" }}>
+                  TOTAL EN DÓLARES (USD)
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+                  {formatCurrency(monthlyTotalUSD, "USD")}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+
           <Typography variant="body2" sx={{ opacity: 0.85 }}>
-            Recaudación mensual registrada en la academia
+            Recaudación mensual registrada en la academia (Córdobas y Dólares)
           </Typography>
         </CardContent>
       </Card>
@@ -256,11 +292,11 @@ export default function SummaryTab({
                         <>
                           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
                             <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
-                              {formatCurrency(m.lastAmount)}
+                              {formatCurrency(m.lastAmount, m.lastCurrency)}
                             </Typography>
                             {(m.lastPendingAmount ?? 0) > 0 && (
                               <Chip
-                                label={`Debe: ${formatCurrency(m.lastPendingAmount)}`}
+                                label={`Debe: ${formatCurrency(m.lastPendingAmount, m.lastCurrency)}`}
                                 size="small"
                                 sx={{
                                   height: 22,
@@ -274,8 +310,11 @@ export default function SummaryTab({
                           </Box>
                           {(m.lastPendingAmount ?? 0) > 0 && (
                             <Typography variant="caption" sx={{ color: "#B45309", fontWeight: 700, display: "block" }}>
-                              Abonado: {formatCurrency(m.lastAmount)} de{" "}
-                              {formatCurrency((m.lastAmount || 0) + (m.lastPendingAmount || 0))}
+                              Abonado: {formatCurrency(m.lastAmount, m.lastCurrency)} de{" "}
+                              {formatCurrency(
+                                (m.lastAmount || 0) + (m.lastPendingAmount || 0),
+                                m.lastCurrency
+                              )}
                             </Typography>
                           )}
                           <Typography variant="body2" sx={{ color: "text.secondary" }}>

@@ -69,6 +69,7 @@ export function usePayments(
         member_id: p.member_id,
         amount: Number(p.amount) || 0,
         pending_amount: Number(p.pending_amount) || 0,
+        currency: p.currency === "USD" ? "USD" : "NIO",
         paid_on: p.paid_on,
         payment_type: p.payment_type,
         payment_method: p.payment_method,
@@ -143,10 +144,11 @@ export function usePayments(
           );
         }
 
+        const paymentCurrency = draft.currency === "USD" ? "USD" : "NIO";
         const pendingAmount = Math.max(0, Number(draft.pendingAmount) || 0);
         const initialAuditNote =
           pendingAmount > 0
-            ? `[Abono inicial ${formatCurrency(draft.amount)} el ${draft.paidOn}]`
+            ? `[Abono inicial ${formatCurrency(draft.amount, paymentCurrency)} el ${draft.paidOn}]`
             : null;
         const combinedNotes = [draft.notes?.trim() || null, initialAuditNote]
           .filter(Boolean)
@@ -157,6 +159,7 @@ export function usePayments(
           member_id: draft.memberId,
           amount: draft.amount,
           pending_amount: pendingAmount,
+          currency: paymentCurrency,
           paid_on: draft.paidOn,
           payment_type: draft.paymentType,
           payment_method: draft.paymentMethod,
@@ -213,6 +216,7 @@ export function usePayments(
           member_id: draft.memberId,
           amount: draft.amount,
           pending_amount: Math.max(0, Number(draft.pendingAmount) || 0),
+          currency: draft.currency === "USD" ? "USD" : "NIO",
           paid_on: draft.paidOn,
           payment_type: draft.paymentType,
           payment_method: draft.paymentMethod,
@@ -272,7 +276,8 @@ export function usePayments(
         );
 
         const installmentLog = `[Abono ${formatCurrency(
-          input.installmentAmount
+          input.installmentAmount,
+          payment.currency
         )} el ${input.paidOn} (${getPaymentMethodLabel(input.paymentMethod)})${
           input.notes?.trim() ? `: ${input.notes.trim()}` : ""
         }]`;
@@ -350,8 +355,9 @@ export function usePayments(
     [organizationId, supabase]
   );
 
-  // Compute monthly total for current calendar month
-  const [currentMonthTotal, setCurrentMonthTotal] = useState<number>(0);
+  // Compute monthly totals for current calendar month separated by currency
+  const [monthlyTotalNIO, setMonthlyTotalNIO] = useState<number>(0);
+  const [monthlyTotalUSD, setMonthlyTotalUSD] = useState<number>(0);
 
   const fetchMonthTotal = useCallback(async () => {
     if (!organizationId) return;
@@ -365,17 +371,26 @@ export function usePayments(
 
       const { data, error } = await supabase
         .from("payments")
-        .select("amount")
+        .select("amount, currency")
         .eq("organization_id", organizationId)
         .gte("paid_on", monthStart)
         .lte("paid_on", monthEnd);
 
       if (error) throw error;
-      const total = (data || []).reduce(
-        (acc: number, item: any) => acc + (Number(item.amount) || 0),
-        0
-      );
-      setCurrentMonthTotal(total);
+
+      let totalNIO = 0;
+      let totalUSD = 0;
+      for (const item of data || []) {
+        const amt = Number((item as any).amount) || 0;
+        const curr = (item as any).currency;
+        if (curr === "USD") {
+          totalUSD += amt;
+        } else {
+          totalNIO += amt;
+        }
+      }
+      setMonthlyTotalNIO(totalNIO);
+      setMonthlyTotalUSD(totalUSD);
     } catch {
       // silent
     }
@@ -396,7 +411,9 @@ export function usePayments(
     setToDate,
     selectedMemberId,
     setSelectedMemberId,
-    monthlyTotal: currentMonthTotal,
+    monthlyTotal: monthlyTotalNIO,
+    monthlyTotalNIO,
+    monthlyTotalUSD,
     createPayment,
     updatePayment,
     registerInstallment,

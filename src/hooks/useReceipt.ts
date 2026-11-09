@@ -83,6 +83,7 @@ export function useReceipt() {
 
       // TOTAL PAGADO / TOTAL ABONADO
       const isPartial = (data.pendingAmount ?? 0) > 0;
+      const currency = data.currency || "NIO";
       const totalPeriodAmount =
         data.totalPeriodAmount ?? (data.amount || 0) + (data.pendingAmount || 0);
 
@@ -94,7 +95,7 @@ export function useReceipt() {
       // Amount
       ctx.font = "bold 67px system-ui, sans-serif";
       ctx.fillStyle = "#0F2F28";
-      ctx.fillText(formatCurrency(data.amount), 540, 480);
+      ctx.fillText(formatCurrency(data.amount, currency), 540, 480);
 
       // Confirmation / Partial pill
       ctx.fillStyle = isPartial ? "#FEF3C7" : "#D1FAE5";
@@ -151,8 +152,8 @@ export function useReceipt() {
       }
       drawRow("CONCEPTO", data.paymentType);
       if (isPartial) {
-        drawRow("VALOR TOTAL DEL PERÍODO", formatCurrency(totalPeriodAmount));
-        drawRow("SALDO PENDIENTE", formatCurrency(data.pendingAmount), "#B45309");
+        drawRow("VALOR TOTAL DEL PERÍODO", formatCurrency(totalPeriodAmount, currency));
+        drawRow("SALDO PENDIENTE", formatCurrency(data.pendingAmount, currency), "#B45309");
       }
       drawRow("MÉTODO", data.paymentMethod);
       drawRow("FECHA DE PAGO", formatDate(data.paidOn));
@@ -190,14 +191,15 @@ export function useReceipt() {
   const shareViaWhatsApp = useCallback(
     async (data: PaymentReceiptData) => {
       const isPartial = (data.pendingAmount ?? 0) > 0;
+      const currency = data.currency || "NIO";
       const totalPeriodAmount =
         data.totalPeriodAmount ?? (data.amount || 0) + (data.pendingAmount || 0);
 
       const message = `*Comprobante de Pago - Payment Academy*
 👤 *Miembro:* ${data.memberName}
-💰 *${isPartial ? "Total Abonado" : "Total Pagado"}:* ${formatCurrency(data.amount)}${
+💰 *${isPartial ? "Total Abonado" : "Total Pagado"}:* ${formatCurrency(data.amount, currency)}${
         isPartial
-          ? `\n📊 *Valor Total:* ${formatCurrency(totalPeriodAmount)}\n⚠️ *Saldo Pendiente:* ${formatCurrency(data.pendingAmount)}\n🏷 *Estado:* Abono Parcial`
+          ? `\n📊 *Valor Total:* ${formatCurrency(totalPeriodAmount, currency)}\n⚠️ *Saldo Pendiente:* ${formatCurrency(data.pendingAmount, currency)}\n🏷 *Estado:* Abono Parcial`
           : "\n✅ *Estado:* Pago Completo"
       }
 📅 *Fecha:* ${formatDate(data.paidOn)}

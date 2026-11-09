@@ -29,6 +29,7 @@ import {
   formatCurrency,
   formatDate,
   getPaymentTypeLabel,
+  getCurrencySymbol,
 } from "@/utils/formatters";
 
 interface InstallmentDialogProps {
@@ -76,6 +77,7 @@ export default function InstallmentDialog({
 
   const currentPaid = Number(payment.amount || 0);
   const currentPending = Number(payment.pending_amount || 0);
+  const paymentCurrency = payment.currency || "NIO";
   const totalPeriodCost = currentPaid + currentPending;
 
   const parsedInstallment = parseFloat(installmentAmount.replace(/,/g, ".")) || 0;
@@ -92,7 +94,7 @@ export default function InstallmentDialog({
 
     if (parsedInstallment > currentPending) {
       setError(
-        `El abono no puede superar el saldo pendiente (${formatCurrency(currentPending)}).`
+        `El abono no puede superar el saldo pendiente (${formatCurrency(currentPending, paymentCurrency)}).`
       );
       return;
     }
@@ -162,7 +164,7 @@ export default function InstallmentDialog({
                 Valor total del período:
               </Typography>
               <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                {formatCurrency(totalPeriodCost)}
+                {formatCurrency(totalPeriodCost, paymentCurrency)}
               </Typography>
             </Box>
 
@@ -171,7 +173,7 @@ export default function InstallmentDialog({
                 Abonado hasta hoy:
               </Typography>
               <Typography variant="caption" sx={{ fontWeight: 700, color: "success.main" }}>
-                {formatCurrency(currentPaid)}
+                {formatCurrency(currentPaid, paymentCurrency)}
               </Typography>
             </Box>
 
@@ -180,7 +182,7 @@ export default function InstallmentDialog({
                 Saldo pendiente actual:
               </Typography>
               <Chip
-                label={formatCurrency(currentPending)}
+                label={formatCurrency(currentPending, paymentCurrency)}
                 size="small"
                 sx={{
                   fontWeight: 800,
@@ -201,7 +203,7 @@ export default function InstallmentDialog({
               onClick={() => setInstallmentAmount(String(currentPending))}
               sx={{ fontSize: "0.75rem", py: 0 }}
             >
-              Abonar saldo total ({formatCurrency(currentPending)})
+              Abonar saldo total ({formatCurrency(currentPending, paymentCurrency)})
             </Button>
           </Box>
 
@@ -216,7 +218,11 @@ export default function InstallmentDialog({
             disabled={saving}
             slotProps={{
               input: {
-                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    {getCurrencySymbol(paymentCurrency)}
+                  </InputAdornment>
+                ),
               },
             }}
             autoFocus
@@ -244,7 +250,7 @@ export default function InstallmentDialog({
               </Typography>
               {remainingAfterInstallment > 0 && (
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                  {formatCurrency(remainingAfterInstallment)}
+                  {formatCurrency(remainingAfterInstallment, paymentCurrency)}
                 </Typography>
               )}
             </Box>

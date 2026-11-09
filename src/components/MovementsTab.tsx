@@ -170,11 +170,49 @@ export default function MovementsTab({
         )}
       </Card>
 
-      {/* Movements Count */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+      {/* Movements Count & Totals by Currency */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 1.5,
+          mb: 2,
+        }}
+      >
         <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 600 }}>
-          {payments.length === 1 ? "1 movimiento registrado" : `${payments.length} movimientos registrados`}
+          {payments.length === 1
+            ? "1 movimiento registrado"
+            : `${payments.length} movimientos registrados`}
         </Typography>
+
+        {payments.length > 0 && (() => {
+          const totalNIO = payments
+            .filter((p) => p.currency !== "USD")
+            .reduce((acc, p) => acc + Number(p.amount || 0), 0);
+          const totalUSD = payments
+            .filter((p) => p.currency === "USD")
+            .reduce((acc, p) => acc + Number(p.amount || 0), 0);
+          return (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              <Chip
+                label={`Total Córdobas: ${formatCurrency(totalNIO, "NIO")}`}
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ fontWeight: 800 }}
+              />
+              <Chip
+                label={`Total Dólares: ${formatCurrency(totalUSD, "USD")}`}
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ fontWeight: 800 }}
+              />
+            </Box>
+          );
+        })()}
       </Box>
 
       {/* Payments List */}
@@ -229,11 +267,15 @@ export default function MovementsTab({
                       </Box>
                       <Box sx={{ textAlign: "right" }}>
                         <Typography variant="h6" sx={{ fontWeight: 800, color: "primary.main" }}>
-                          {formatCurrency(payment.amount)}
+                          {formatCurrency(payment.amount, payment.currency)}
                         </Typography>
                         {Number(payment.pending_amount || 0) > 0 && (
                           <Typography variant="caption" sx={{ color: "#B45309", fontWeight: 700, display: "block" }}>
-                            Abonado de {formatCurrency(Number(payment.amount || 0) + Number(payment.pending_amount || 0))}
+                            Abonado de{" "}
+                            {formatCurrency(
+                              Number(payment.amount || 0) + Number(payment.pending_amount || 0),
+                              payment.currency
+                            )}
                           </Typography>
                         )}
                       </Box>
@@ -241,9 +283,22 @@ export default function MovementsTab({
 
                     {/* Metadata tags */}
                     <Box sx={{ display: "flex", gap: 1, my: 1, flexWrap: "wrap", alignItems: "center" }}>
+                      <Chip
+                        label={payment.currency === "USD" ? "USD ($)" : "NIO (C$)"}
+                        size="small"
+                        sx={{
+                          fontWeight: 800,
+                          fontSize: "0.72rem",
+                          backgroundColor: payment.currency === "USD" ? "#DBEAFE" : "#CCFBF1",
+                          color: payment.currency === "USD" ? "#1E40AF" : "#0F766E",
+                        }}
+                      />
                       {Number(payment.pending_amount || 0) > 0 && (
                         <Chip
-                          label={`Abono parcial · Debe: ${formatCurrency(payment.pending_amount)}`}
+                          label={`Abono parcial · Debe: ${formatCurrency(
+                            payment.pending_amount,
+                            payment.currency
+                          )}`}
                           size="small"
                           sx={{
                             fontWeight: 800,
@@ -325,7 +380,7 @@ export default function MovementsTab({
                           onClick={() => onRegisterInstallment(payment)}
                           sx={{ fontWeight: 700, fontSize: "0.78rem" }}
                         >
-                          Registrar abono ({formatCurrency(payment.pending_amount)})
+                          Registrar abono ({formatCurrency(payment.pending_amount, payment.currency)})
                         </Button>
                       </Box>
                     )}

@@ -36,6 +36,7 @@ import {
   PaymentType,
   PaymentSummary,
   PaymentSettingValue,
+  PaymentCurrency,
 } from "@/types";
 import {
   formatCurrency,
@@ -43,6 +44,8 @@ import {
   addOneMonth,
   getPaymentTypeLabel,
   getPaymentMethodLabel,
+  getCurrencySymbol,
+  getCurrencyLabel,
 } from "@/utils/formatters";
 
 interface PaymentFormDialogProps {
@@ -92,6 +95,7 @@ export default function PaymentFormDialog({
   const [memberSearch, setMemberSearch] = useState<string>("");
 
   // Step 2 Details
+  const [currency, setCurrency] = useState<PaymentCurrency>("NIO");
   const [amount, setAmount] = useState<string>("");
   const [paidOn, setPaidOn] = useState<string>("");
   const [paymentType, setPaymentType] = useState<PaymentType>("monthly_fee");
@@ -107,7 +111,10 @@ export default function PaymentFormDialog({
 
   const [error, setError] = useState<string | null>(null);
 
-  const expectedMonthlyAmount = Number(paymentSetting?.AmountMonth || 20);
+  const expectedMonthlyAmount =
+    currency === "USD"
+      ? Number(paymentSetting?.AmountMonthDollar || 20)
+      : Number(paymentSetting?.AmountMonthCordoba || 750);
   const parsedAmount = parseFloat(amount.replace(/,/g, ".")) || 0;
   const computedPending =
     parsedAmount > 0 && parsedAmount < expectedMonthlyAmount
@@ -124,7 +131,9 @@ export default function PaymentFormDialog({
     if (editingPayment) {
       const mem = members.find((m) => m.id === editingPayment.member_id) || null;
       const existingPaid = Number(editingPayment.amount || 0);
+      const existingCurrency = editingPayment.currency === "USD" ? "USD" : "NIO";
       setSelectedMember(mem);
+      setCurrency(existingCurrency);
       setAmount(String(existingPaid));
       setPaidOn(editingPayment.paid_on || today);
       setPaymentType(editingPayment.payment_type);
@@ -142,7 +151,8 @@ export default function PaymentFormDialog({
         setSelectedMember(null);
         setCurrentStep(1);
       }
-      setAmount(String(paymentSetting?.AmountMonth || 20));
+      setCurrency("NIO");
+      setAmount(String(paymentSetting?.AmountMonthCordoba || 750));
       setPaidOn(today);
       setPaymentType("monthly_fee");
       setPaymentMethod("cash");
@@ -153,7 +163,28 @@ export default function PaymentFormDialog({
     }
     setError(null);
     setMemberSearch("");
-  }, [open, editingPayment, initialMember, members, paymentSetting?.AmountMonth]);
+  }, [
+    open,
+    editingPayment,
+    initialMember,
+    members,
+    paymentSetting?.AmountMonthCordoba,
+  ]);
+
+  const handleCurrencyChange = (newCurrency: PaymentCurrency) => {
+    setCurrency(newCurrency);
+    const prevExpected =
+      currency === "USD"
+        ? Number(paymentSetting?.AmountMonthDollar || 20)
+        : Number(paymentSetting?.AmountMonthCordoba || 750);
+    const nextExpected =
+      newCurrency === "USD"
+        ? Number(paymentSetting?.AmountMonthDollar || 20)
+        : Number(paymentSetting?.AmountMonthCordoba || 750);
+    if (!amount || parsedAmount === prevExpected) {
+      setAmount(String(nextExpected));
+    }
+  };
 
   // Handle auto updating validUntil when validFrom changes
   const handleValidFromChange = (newFrom: string) => {
@@ -227,6 +258,7 @@ export default function PaymentFormDialog({
       memberId: selectedMember.id,
       amount: parsedAmount,
       pendingAmount: computedPending,
+      currency,
       paidOn,
       paymentType,
       paymentMethod,
@@ -386,17 +418,45 @@ export default function PaymentFormDialog({
               </Box>
             )}
 
-            {/* Monthly Tariff Reference from PlaymentSetting */}
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center", mb: 0.5 }}>
-              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-                Tarifa mensual configurada:
-              </Typography>
+            {/* Currency Selector & Monthly Tariff Reference */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1,
+                mb: 1,
+              }}
+            >
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
+                  Moneda:
+                </Typography>
+                <Chip
+                  label={`Córdobas (C$)`}
+                  size="small"
+                  color={currency === "NIO" ? "primary" : "default"}
+                  variant={currency === "NIO" ? "filled" : "outlined"}
+                  onClick={() => handleCurrencyChange("NIO")}
+                  sx={{ fontWeight: 700, cursor: "pointer" }}
+                />
+                <Chip
+                  label={`Dólares ($)`}
+                  size="small"
+                  color={currency === "USD" ? "primary" : "default"}
+                  variant={currency === "USD" ? "filled" : "outlined"}
+                  onClick={() => handleCurrencyChange("USD")}
+                  sx={{ fontWeight: 700, cursor: "pointer" }}
+                />
+              </Box>
+
               <Chip
-                label={`Mensualidad: ${formatCurrency(paymentSetting.AmountMonth)}`}
+                label={`Mensualidad: ${formatCurrency(expectedMonthlyAmount, currency)}`}
                 size="small"
-                color={parsedAmount === paymentSetting.AmountMonth ? "primary" : "default"}
-                variant={parsedAmount === paymentSetting.AmountMonth ? "filled" : "outlined"}
-                onClick={() => setAmount(String(paymentSetting.AmountMonth))}
+                color={parsedAmount === expectedMonthlyAmount ? "primary" : "default"}
+                variant={parsedAmount === expectedMonthlyAmount ? "filled" : "outlined"}
+                onClick={() => setAmount(String(expectedMonthlyAmount))}
                 sx={{ fontWeight: 700, cursor: "pointer" }}
               />
             </Box>
@@ -413,7 +473,11 @@ export default function PaymentFormDialog({
               disabled={saving}
               slotProps={{
                 input: {
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      {getCurrencySymbol(currency)}
+                    </InputAdornment>
+                  ),
                 },
               }}
               autoFocus
@@ -443,8 +507,8 @@ export default function PaymentFormDialog({
                         Abono parcial detectado automáticamente
                       </Typography>
                       <Typography variant="caption" sx={{ display: "block", fontWeight: 600 }}>
-                        Valor mensual: {formatCurrency(expectedMonthlyAmount)} · Abono hoy:{" "}
-                        {formatCurrency(parsedAmount)}
+                        Valor mensual: {formatCurrency(expectedMonthlyAmount, currency)} · Abono hoy:{" "}
+                        {formatCurrency(parsedAmount, currency)}
                       </Typography>
                     </Box>
                     <Box sx={{ textAlign: "right" }}>
@@ -452,13 +516,13 @@ export default function PaymentFormDialog({
                         Saldo pendiente:
                       </Typography>
                       <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
-                        {formatCurrency(computedPending)}
+                        {formatCurrency(computedPending, currency)}
                       </Typography>
                     </Box>
                   </>
                 ) : (
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    ✅ Pago mensual completo ({formatCurrency(expectedMonthlyAmount)})
+                    ✅ Pago mensual completo ({formatCurrency(expectedMonthlyAmount, currency)})
                   </Typography>
                 )}
               </Box>
@@ -582,22 +646,25 @@ export default function PaymentFormDialog({
               <Typography variant="body2">
                 👤 <strong>Miembro:</strong> {selectedMember?.full_name}
               </Typography>
+              <Typography variant="body2">
+                💱 <strong>Moneda:</strong> {getCurrencyLabel(currency)}
+              </Typography>
               {isAutoPartial ? (
                 <>
                   <Typography variant="body2">
                     📊 <strong>Valor mensual configurado:</strong>{" "}
-                    {formatCurrency(expectedMonthlyAmount)}
+                    {formatCurrency(expectedMonthlyAmount, currency)}
                   </Typography>
                   <Typography variant="body2" sx={{ color: "success.main" }}>
-                    💰 <strong>Abonado hoy:</strong> {formatCurrency(parsedAmount)}
+                    💰 <strong>Abonado hoy:</strong> {formatCurrency(parsedAmount, currency)}
                   </Typography>
                   <Typography variant="body2" sx={{ color: "warning.dark", fontWeight: 700 }}>
-                    ⚠️ <strong>Saldo pendiente:</strong> {formatCurrency(computedPending)}
+                    ⚠️ <strong>Saldo pendiente:</strong> {formatCurrency(computedPending, currency)}
                   </Typography>
                 </>
               ) : (
                 <Typography variant="body2">
-                  💰 <strong>Valor:</strong> {formatCurrency(parsedAmount)}
+                  💰 <strong>Valor:</strong> {formatCurrency(parsedAmount, currency)}
                 </Typography>
               )}
               <Typography variant="body2">

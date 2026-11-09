@@ -117,7 +117,8 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
     setFromDate,
     setToDate,
     setSelectedMemberId,
-    monthlyTotal,
+    monthlyTotalNIO,
+    monthlyTotalUSD,
     createPayment,
     updatePayment,
     registerInstallment,
@@ -201,6 +202,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
       amount: paid,
       pendingAmount: pending,
       totalPeriodAmount: paid + pending,
+      currency: payment.currency || "NIO",
       paidOn: payment.paid_on,
       paymentType: getPaymentTypeLabel(payment.payment_type),
       paymentMethod: getPaymentMethodLabel(payment.payment_method),
@@ -234,6 +236,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
       member_id: summary.memberId,
       amount: Number(summary.lastAmount || 0),
       pending_amount: Number(summary.lastPendingAmount || 0),
+      currency: summary.lastCurrency || "NIO",
       payment_type: summary.lastPaymentType || "monthly_fee",
       payment_method: summary.lastPaymentMethod || "cash",
       paid_on: summary.lastPaidOn || new Date().toISOString().split("T")[0],
@@ -261,7 +264,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
         open: true,
         message:
           remaining === 0
-            ? "¡Abono registrado! El saldo pendiente ha quedado en $0."
+            ? "¡Abono registrado! El saldo pendiente ha quedado saldado."
             : "Abono registrado correctamente.",
         severity: "success",
       });
@@ -272,6 +275,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
         amount: totalPaid,
         pendingAmount: remaining,
         totalPeriodAmount: totalPaid + remaining,
+        currency: updated.currency || "NIO",
         paidOn: updated.paid_on,
         paymentType: getPaymentTypeLabel(updated.payment_type),
         paymentMethod: getPaymentMethodLabel(updated.payment_method),
@@ -325,6 +329,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
           amount: draft.amount,
           pendingAmount: pending,
           totalPeriodAmount: draft.amount + pending,
+          currency: draft.currency || "NIO",
           paidOn: draft.paidOn,
           paymentType: getPaymentTypeLabel(draft.paymentType),
           paymentMethod: getPaymentMethodLabel(draft.paymentMethod),
@@ -408,7 +413,8 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
             summaries={filteredSummaries}
             searchQuery={summarySearch}
             onSearchChange={setSummarySearch}
-            monthlyTotal={monthlyTotal}
+            monthlyTotalNIO={monthlyTotalNIO}
+            monthlyTotalUSD={monthlyTotalUSD}
             loading={summariesLoading}
             onSelectMemberPayments={handleSelectMemberPayments}
             onNewPaymentForMember={handleNewPaymentForSummary}

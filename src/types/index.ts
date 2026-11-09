@@ -1,5 +1,7 @@
 export type MemberStatus = "active" | "inactive" | "frozen";
 
+export type PaymentCurrency = "NIO" | "USD";
+
 export type PaymentType =
   | "monthly_fee"
   | "enrollment"
@@ -50,6 +52,7 @@ export interface Payment {
   member_id: string;
   amount: number;
   pending_amount: number;
+  currency: PaymentCurrency;
   paid_on: string;
   payment_type: PaymentType;
   payment_method: PaymentMethod;
@@ -78,6 +81,7 @@ export interface MemberPaymentSummary {
   lastPaymentId: string | null;
   lastAmount: number | null;
   lastPendingAmount: number | null;
+  lastCurrency: PaymentCurrency | null;
   lastPaidOn: string | null;
   lastPaymentType: PaymentType | null;
   lastPaymentMethod: PaymentMethod | null;
@@ -89,6 +93,7 @@ export interface PaymentDraft {
   memberId: string;
   amount: number;
   pendingAmount?: number;
+  currency: PaymentCurrency;
   paidOn: string;
   paymentType: PaymentType;
   paymentMethod: PaymentMethod;
@@ -112,6 +117,7 @@ export interface PaymentReceiptData {
   amount: number;
   pendingAmount?: number;
   totalPeriodAmount?: number;
+  currency?: PaymentCurrency;
   paidOn: string;
   paymentType: string;
   paymentMethod: string;
@@ -123,7 +129,8 @@ export interface PaymentReceiptData {
 }
 
 export interface PaymentSettingValue {
-  AmountMonth: number;
+  AmountMonthDollar: number;
+  AmountMonthCordoba: number;
   AmountBiweek: number;
   AmountDay: number;
 }
