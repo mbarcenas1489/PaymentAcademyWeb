@@ -23,6 +23,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import { MemberPaymentSummary } from "@/types";
 import {
   formatCurrency,
@@ -42,6 +43,7 @@ interface SummaryTabProps {
   loading: boolean;
   onSelectMemberPayments: (member: MemberPaymentSummary) => void;
   onNewPaymentForMember: (member: MemberPaymentSummary) => void;
+  onInstallmentForMember?: (member: MemberPaymentSummary) => void;
   onOpenNewMember: () => void;
 }
 
@@ -53,6 +55,7 @@ export default function SummaryTab({
   loading,
   onSelectMemberPayments,
   onNewPaymentForMember,
+  onInstallmentForMember,
   onOpenNewMember,
 }: SummaryTabProps) {
   return (
@@ -251,9 +254,30 @@ export default function SummaryTab({
 
                       {hasPayment ? (
                         <>
-                          <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
-                            {formatCurrency(m.lastAmount)}
-                          </Typography>
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
+                              {formatCurrency(m.lastAmount)}
+                            </Typography>
+                            {(m.lastPendingAmount ?? 0) > 0 && (
+                              <Chip
+                                label={`Debe: ${formatCurrency(m.lastPendingAmount)}`}
+                                size="small"
+                                sx={{
+                                  height: 22,
+                                  fontSize: "0.72rem",
+                                  fontWeight: 800,
+                                  backgroundColor: "#FEF3C7",
+                                  color: "#B45309",
+                                }}
+                              />
+                            )}
+                          </Box>
+                          {(m.lastPendingAmount ?? 0) > 0 && (
+                            <Typography variant="caption" sx={{ color: "#B45309", fontWeight: 700, display: "block" }}>
+                              Abonado: {formatCurrency(m.lastAmount)} de{" "}
+                              {formatCurrency((m.lastAmount || 0) + (m.lastPendingAmount || 0))}
+                            </Typography>
+                          )}
                           <Typography variant="body2" sx={{ color: "text.secondary" }}>
                             {getPaymentTypeLabel(m.lastPaymentType)} · {getPaymentMethodLabel(m.lastPaymentMethod)}
                           </Typography>
@@ -269,27 +293,37 @@ export default function SummaryTab({
                     </Box>
 
                     {/* Action buttons */}
-                    <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                    <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap" }}>
                       <Button
                         size="small"
                         variant="outlined"
                         startIcon={<HistoryIcon />}
                         onClick={() => onSelectMemberPayments(m)}
-                        fullWidth
-                        sx={{ fontSize: "0.8rem" }}
+                        sx={{ fontSize: "0.78rem", flex: 1 }}
                       >
-                        Ver historial
+                        Historial
                       </Button>
+                      {(m.lastPendingAmount ?? 0) > 0 && onInstallmentForMember && (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="warning"
+                          startIcon={<PaymentsIcon />}
+                          onClick={() => onInstallmentForMember(m)}
+                          sx={{ fontSize: "0.78rem", flex: 1, fontWeight: 700 }}
+                        >
+                          Abonar
+                        </Button>
+                      )}
                       <Button
                         size="small"
                         variant="contained"
                         color="primary"
                         startIcon={<PaymentIcon />}
                         onClick={() => onNewPaymentForMember(m)}
-                        fullWidth
-                        sx={{ fontSize: "0.8rem" }}
+                        sx={{ fontSize: "0.78rem", flex: 1 }}
                       >
-                        Registrar pago
+                        Nuevo pago
                       </Button>
                     </Stack>
                   </CardContent>

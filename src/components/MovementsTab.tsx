@@ -26,6 +26,7 @@ import EventBusyIcon from "@mui/icons-material/EventBusy";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import CloseIcon from "@mui/icons-material/Close";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import { PaymentSummary } from "@/types";
 import {
   formatCurrency,
@@ -49,6 +50,7 @@ interface MovementsTabProps {
   onEditPayment: (payment: PaymentSummary) => void;
   onDeletePayment: (payment: PaymentSummary) => void;
   onShareReceipt: (payment: PaymentSummary) => void;
+  onRegisterInstallment: (payment: PaymentSummary) => void;
   onOpenNewPayment: () => void;
 }
 
@@ -66,6 +68,7 @@ export default function MovementsTab({
   onEditPayment,
   onDeletePayment,
   onShareReceipt,
+  onRegisterInstallment,
   onOpenNewPayment,
 }: MovementsTabProps) {
   const [menuAnchor, setMenuAnchor] = useState<{
@@ -224,13 +227,32 @@ export default function MovementsTab({
                           </Typography>
                         )}
                       </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: "primary.main" }}>
-                        {formatCurrency(payment.amount)}
-                      </Typography>
+                      <Box sx={{ textAlign: "right" }}>
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: "primary.main" }}>
+                          {formatCurrency(payment.amount)}
+                        </Typography>
+                        {Number(payment.pending_amount || 0) > 0 && (
+                          <Typography variant="caption" sx={{ color: "#B45309", fontWeight: 700, display: "block" }}>
+                            Abonado de {formatCurrency(Number(payment.amount || 0) + Number(payment.pending_amount || 0))}
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
 
                     {/* Metadata tags */}
                     <Box sx={{ display: "flex", gap: 1, my: 1, flexWrap: "wrap", alignItems: "center" }}>
+                      {Number(payment.pending_amount || 0) > 0 && (
+                        <Chip
+                          label={`Abono parcial · Debe: ${formatCurrency(payment.pending_amount)}`}
+                          size="small"
+                          sx={{
+                            fontWeight: 800,
+                            fontSize: "0.75rem",
+                            backgroundColor: "#FEF3C7",
+                            color: "#B45309",
+                          }}
+                        />
+                      )}
                       <Chip
                         label={getPaymentTypeLabel(payment.payment_type)}
                         size="small"
@@ -292,6 +314,21 @@ export default function MovementsTab({
                         Nota: {payment.notes}
                       </Typography>
                     )}
+
+                    {canManagePayments && Number(payment.pending_amount || 0) > 0 && (
+                      <Box sx={{ mt: 1.5 }}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="warning"
+                          startIcon={<PaymentsIcon />}
+                          onClick={() => onRegisterInstallment(payment)}
+                          sx={{ fontWeight: 700, fontSize: "0.78rem" }}
+                        >
+                          Registrar abono ({formatCurrency(payment.pending_amount)})
+                        </Button>
+                      </Box>
+                    )}
                   </Box>
 
                   {/* Actions button */}
@@ -316,6 +353,20 @@ export default function MovementsTab({
         onClose={handleCloseMenu}
         slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 190 } } }}
       >
+        {canManagePayments && Number(menuAnchor?.payment.pending_amount || 0) > 0 && (
+          <MenuItem
+            onClick={() => {
+              if (menuAnchor) onRegisterInstallment(menuAnchor.payment);
+              handleCloseMenu();
+            }}
+          >
+            <ListItemIcon>
+              <PaymentsIcon fontSize="small" color="warning" />
+            </ListItemIcon>
+            <ListItemText>Registrar abono</ListItemText>
+          </MenuItem>
+        )}
+
         <MenuItem
           onClick={() => {
             if (menuAnchor) onShareReceipt(menuAnchor.payment);

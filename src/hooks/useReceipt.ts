@@ -81,19 +81,23 @@ export function useReceipt() {
       ctx.closePath();
       ctx.fill();
 
-      // TOTAL PAGADO
+      // TOTAL PAGADO / TOTAL ABONADO
+      const isPartial = (data.pendingAmount ?? 0) > 0;
+      const totalPeriodAmount =
+        data.totalPeriodAmount ?? (data.amount || 0) + (data.pendingAmount || 0);
+
       ctx.textAlign = "center";
       ctx.font = "bold 27px system-ui, sans-serif";
       ctx.fillStyle = "#4A6B63";
-      ctx.fillText("TOTAL PAGADO", 540, 395);
+      ctx.fillText(isPartial ? "TOTAL ABONADO" : "TOTAL PAGADO", 540, 395);
 
       // Amount
       ctx.font = "bold 67px system-ui, sans-serif";
       ctx.fillStyle = "#0F2F28";
       ctx.fillText(formatCurrency(data.amount), 540, 480);
 
-      // Confirmation pill
-      ctx.fillStyle = "#D1FAE5";
+      // Confirmation / Partial pill
+      ctx.fillStyle = isPartial ? "#FEF3C7" : "#D1FAE5";
       const pillX = 390;
       const pillY = 515;
       const pillW = 300;
@@ -114,8 +118,8 @@ export function useReceipt() {
       ctx.fill();
 
       ctx.font = "bold 23px system-ui, sans-serif";
-      ctx.fillStyle = "#065F46";
-      ctx.fillText("PAGO CONFIRMADO", 540, 555);
+      ctx.fillStyle = isPartial ? "#B45309" : "#065F46";
+      ctx.fillText(isPartial ? "ABONO PARCIAL" : "PAGO CONFIRMADO", 540, 555);
 
       // Divider line
       ctx.strokeStyle = "#E6F4F1";
@@ -127,17 +131,18 @@ export function useReceipt() {
 
       // Rows
       ctx.textAlign = "left";
-      let y = 700;
+      let y = 690;
+      const rowStep = isPartial ? 98 : 112;
 
-      const drawRow = (label: string, value: string) => {
-        ctx.font = "bold 23px system-ui, sans-serif";
+      const drawRow = (label: string, value: string, valueColor = "#0F2F28") => {
+        ctx.font = "bold 22px system-ui, sans-serif";
         ctx.fillStyle = "#4A6B63";
         ctx.fillText(label, 115, y);
 
-        ctx.font = "33px system-ui, sans-serif";
-        ctx.fillStyle = "#0F2F28";
-        ctx.fillText(value, 115, y + 48);
-        y += 112;
+        ctx.font = "bold 32px system-ui, sans-serif";
+        ctx.fillStyle = valueColor;
+        ctx.fillText(value, 115, y + 44);
+        y += rowStep;
       };
 
       drawRow("RECIBIDO DE", data.memberName);
@@ -145,6 +150,10 @@ export function useReceipt() {
         drawRow("DOCUMENTO", data.memberDocument);
       }
       drawRow("CONCEPTO", data.paymentType);
+      if (isPartial) {
+        drawRow("VALOR TOTAL DEL PERÍODO", formatCurrency(totalPeriodAmount));
+        drawRow("SALDO PENDIENTE", formatCurrency(data.pendingAmount), "#B45309");
+      }
       drawRow("MÉTODO", data.paymentMethod);
       drawRow("FECHA DE PAGO", formatDate(data.paidOn));
       drawRow("VIGENCIA", `${formatDate(data.validFrom)} – ${formatDate(data.validUntil)}`);
@@ -180,9 +189,17 @@ export function useReceipt() {
 
   const shareViaWhatsApp = useCallback(
     async (data: PaymentReceiptData) => {
+      const isPartial = (data.pendingAmount ?? 0) > 0;
+      const totalPeriodAmount =
+        data.totalPeriodAmount ?? (data.amount || 0) + (data.pendingAmount || 0);
+
       const message = `*Comprobante de Pago - Payment Academy*
 👤 *Miembro:* ${data.memberName}
-💰 *Total Pagado:* ${formatCurrency(data.amount)}
+💰 *${isPartial ? "Total Abonado" : "Total Pagado"}:* ${formatCurrency(data.amount)}${
+        isPartial
+          ? `\n📊 *Valor Total:* ${formatCurrency(totalPeriodAmount)}\n⚠️ *Saldo Pendiente:* ${formatCurrency(data.pendingAmount)}\n🏷 *Estado:* Abono Parcial`
+          : "\n✅ *Estado:* Pago Completo"
+      }
 📅 *Fecha:* ${formatDate(data.paidOn)}
 📌 *Concepto:* ${data.paymentType}
 💳 *Método:* ${data.paymentMethod}

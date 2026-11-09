@@ -18,6 +18,7 @@ import MovementsTab from "./MovementsTab";
 import MembersDialog from "./MembersDialog";
 import RegisterMemberDialog from "./RegisterMemberDialog";
 import PaymentFormDialog from "./PaymentFormDialog";
+import InstallmentDialog from "./InstallmentDialog";
 import ReceiptModal from "./ReceiptModal";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
 
@@ -25,12 +26,14 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useMemberSummaries } from "@/hooks/useMemberSummaries";
 import { useMembers } from "@/hooks/useMembers";
 import { usePayments } from "@/hooks/usePayments";
+import { useAppConfiguration } from "@/hooks/useAppConfiguration";
 import {
   Member,
   MemberPaymentSummary,
   PaymentSummary,
   PaymentDraft,
   PaymentReceiptData,
+  InstallmentInput,
 } from "@/types";
 import { User } from "@supabase/supabase-js";
 import { getPaymentTypeLabel, getPaymentMethodLabel } from "@/utils/formatters";
@@ -47,12 +50,14 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
   const [openMembersDialog, setOpenMembersDialog] = useState<boolean>(false);
   const [openRegisterMember, setOpenRegisterMember] = useState<boolean>(false);
   const [openPaymentForm, setOpenPaymentForm] = useState<boolean>(false);
+  const [openInstallmentDialog, setOpenInstallmentDialog] = useState<boolean>(false);
   const [openReceiptModal, setOpenReceiptModal] = useState<boolean>(false);
   const [openConfirmDelete, setOpenConfirmDelete] = useState<boolean>(false);
 
   // Form selections
   const [targetMember, setTargetMember] = useState<Member | null>(null);
   const [editingPayment, setEditingPayment] = useState<PaymentSummary | null>(null);
+  const [installmentTarget, setInstallmentTarget] = useState<PaymentSummary | null>(null);
   const [deletingPayment, setDeletingPayment] = useState<PaymentSummary | null>(null);
   const [receiptData, setReceiptData] = useState<PaymentReceiptData | null>(null);
   const [isReceiptNew, setIsReceiptNew] = useState<boolean>(false);
@@ -115,15 +120,22 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
     monthlyTotal,
     createPayment,
     updatePayment,
+    registerInstallment,
     deletePayment,
     refreshPayments,
   } = usePayments(organizationId);
+
+  const {
+    paymentSetting,
+    refreshConfiguration,
+  } = useAppConfiguration();
 
   const handleRefreshAll = () => {
     refreshOrganization();
     refreshSummaries();
     refreshMembers();
     refreshPayments();
+    refreshConfiguration();
     setSnackbar({
       open: true,
       message: "Datos actualizados correctamente.",
@@ -182,9 +194,13 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
   };
 
   const handleShareReceipt = (payment: PaymentSummary) => {
+    const paid = Number(payment.amount || 0);
+    const pending = Number(payment.pending_amount || 0);
     setReceiptData({
       memberName: payment.memberName,
-      amount: payment.amount,
+      amount: paid,
+      pendingAmount: pending,
+      totalPeriodAmount: paid + pending,
       paidOn: payment.paid_on,
       paymentType: getPaymentTypeLabel(payment.payment_type),
       paymentMethod: getPaymentMethodLabel(payment.payment_method),
@@ -196,6 +212,80 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
     });
     setIsReceiptNew(false);
     setOpenReceiptModal(true);
+  };
+
+  const handleOpenInstallmentForPayment = (payment: PaymentSummary) => {
+    setInstallmentTarget(payment);
+    setOpenInstallmentDialog(true);
+  };
+
+  const handleOpenInstallmentForSummary = (summary: MemberPaymentSummary) => {
+    if (!summary.lastPaymentId) return;
+    const found = payments.find((p) => p.id === summary.lastPaymentId);
+    if (found) {
+      setInstallmentTarget(found);
+      setOpenInstallmentDialog(true);
+      return;
+    }
+    // Fallback constructed from summary if payments list was filtered
+    const fallbackPayment: PaymentSummary = {
+      id: summary.lastPaymentId,
+      organization_id: summary.organizationId,
+      member_id: summary.memberId,
+      amount: Number(summary.lastAmount || 0),
+      pending_amount: Number(summary.lastPendingAmount || 0),
+      payment_type: summary.lastPaymentType || "monthly_fee",
+      payment_method: summary.lastPaymentMethod || "cash",
+      paid_on: summary.lastPaidOn || new Date().toISOString().split("T")[0],
+      valid_from: summary.lastValidFrom || new Date().toISOString().split("T")[0],
+      valid_until: summary.lastValidUntil || new Date().toISOString().split("T")[0],
+      reference: null,
+      notes: null,
+      created_at: "",
+      memberName: summary.fullName,
+      memberDocument: summary.documentNumber,
+    };
+    setInstallmentTarget(fallbackPayment);
+    setOpenInstallmentDialog(true);
+  };
+
+  const handleSaveInstallment = async (
+    payment: PaymentSummary,
+    input: InstallmentInput
+  ): Promise<boolean> => {
+    const updated = await registerInstallment(payment, input);
+    if (updated) {
+      const remaining = Number(updated.pending_amount || 0);
+      const totalPaid = Number(updated.amount || 0);
+      setSnackbar({
+        open: true,
+        message:
+          remaining === 0
+            ? "¡Abono registrado! El saldo pendiente ha quedado en $0."
+            : "Abono registrado correctamente.",
+        severity: "success",
+      });
+      refreshSummaries();
+
+      setReceiptData({
+        memberName: updated.memberName,
+        amount: totalPaid,
+        pendingAmount: remaining,
+        totalPeriodAmount: totalPaid + remaining,
+        paidOn: updated.paid_on,
+        paymentType: getPaymentTypeLabel(updated.payment_type),
+        paymentMethod: getPaymentMethodLabel(updated.payment_method),
+        validFrom: updated.valid_from,
+        validUntil: updated.valid_until,
+        reference: updated.reference,
+        receiptNumber: updated.id,
+        memberDocument: updated.memberDocument,
+      });
+      setIsReceiptNew(true);
+      setOpenReceiptModal(true);
+      return true;
+    }
+    return false;
   };
 
   const handleSavePayment = async (
@@ -217,9 +307,13 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
     } else {
       const newId = await createPayment(draft);
       if (newId) {
+        const pending = Number(draft.pendingAmount || 0);
         setSnackbar({
           open: true,
-          message: "Pago guardado correctamente.",
+          message:
+            pending > 0
+              ? "Abono parcial guardado correctamente."
+              : "Pago guardado correctamente.",
           severity: "success",
         });
         refreshSummaries();
@@ -229,6 +323,8 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
         setReceiptData({
           memberName: mem?.full_name || "Miembro",
           amount: draft.amount,
+          pendingAmount: pending,
+          totalPeriodAmount: draft.amount + pending,
           paidOn: draft.paidOn,
           paymentType: getPaymentTypeLabel(draft.paymentType),
           paymentMethod: getPaymentMethodLabel(draft.paymentMethod),
@@ -316,6 +412,9 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
             loading={summariesLoading}
             onSelectMemberPayments={handleSelectMemberPayments}
             onNewPaymentForMember={handleNewPaymentForSummary}
+            onInstallmentForMember={
+              canManagePayments ? handleOpenInstallmentForSummary : undefined
+            }
             onOpenNewMember={() => setOpenRegisterMember(true)}
           />
         ) : (
@@ -336,6 +435,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
               setOpenConfirmDelete(true);
             }}
             onShareReceipt={handleShareReceipt}
+            onRegisterInstallment={handleOpenInstallmentForPayment}
             onOpenNewPayment={handleOpenNewPaymentGeneral}
           />
         )}
@@ -402,7 +502,16 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
         members={members}
         initialMember={targetMember}
         editingPayment={editingPayment}
+        paymentSetting={paymentSetting}
         onSave={handleSavePayment}
+        saving={paymentSaving}
+      />
+
+      <InstallmentDialog
+        open={openInstallmentDialog}
+        onClose={() => setOpenInstallmentDialog(false)}
+        payment={installmentTarget}
+        onSave={handleSaveInstallment}
         saving={paymentSaving}
       />
 
