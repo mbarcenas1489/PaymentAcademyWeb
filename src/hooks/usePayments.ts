@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { PaymentSummary, PaymentDraft } from "@/types";
+import { PaymentSummary, PaymentDraft, InstallmentInput } from "@/types";
+import { formatCurrency, getPaymentMethodLabel } from "@/utils/formatters";
 
 export function usePayments(
   organizationId: string | null,
@@ -38,18 +39,7 @@ export function usePayments(
       let query = supabase
         .from("payments")
         .select(`
-          id,
-          organization_id,
-          member_id,
-          amount,
-          paid_on,
-          payment_type,
-          payment_method,
-          valid_from,
-          valid_until,
-          reference,
-          notes,
-          created_at,
+          *,
           members (
             full_name,
             document_number
@@ -78,6 +68,7 @@ export function usePayments(
         organization_id: p.organization_id,
         member_id: p.member_id,
         amount: Number(p.amount) || 0,
+        pending_amount: Number(p.pending_amount) || 0,
         paid_on: p.paid_on,
         payment_type: p.payment_type,
         payment_method: p.payment_method,
@@ -152,17 +143,27 @@ export function usePayments(
           );
         }
 
+        const pendingAmount = Math.max(0, Number(draft.pendingAmount) || 0);
+        const initialAuditNote =
+          pendingAmount > 0
+            ? `[Abono inicial ${formatCurrency(draft.amount)} el ${draft.paidOn}]`
+            : null;
+        const combinedNotes = [draft.notes?.trim() || null, initialAuditNote]
+          .filter(Boolean)
+          .join(" · ") || null;
+
         const newPayment = {
           organization_id: organizationId,
           member_id: draft.memberId,
           amount: draft.amount,
+          pending_amount: pendingAmount,
           paid_on: draft.paidOn,
           payment_type: draft.paymentType,
           payment_method: draft.paymentMethod,
           valid_from: draft.validFrom,
           valid_until: draft.validUntil,
           reference: draft.reference?.trim() || null,
-          notes: draft.notes?.trim() || null,
+          notes: combinedNotes,
         };
 
         const { data, error: insertError } = await supabase
@@ -211,6 +212,7 @@ export function usePayments(
         const updatedData = {
           member_id: draft.memberId,
           amount: draft.amount,
+          pending_amount: Math.max(0, Number(draft.pendingAmount) || 0),
           paid_on: draft.paidOn,
           payment_type: draft.paymentType,
           payment_method: draft.paymentMethod,
@@ -238,6 +240,84 @@ export function usePayments(
       }
     },
     [organizationId, fetchPayments, checkValidityOverlap, supabase]
+  );
+
+  const registerInstallment = useCallback(
+    async (
+      payment: PaymentSummary,
+      input: InstallmentInput
+    ): Promise<PaymentSummary | null> => {
+      if (!organizationId) {
+        setError("Organización no identificada");
+        return null;
+      }
+
+      if (input.installmentAmount <= 0) {
+        setError("El valor del abono debe ser mayor que cero.");
+        return null;
+      }
+
+      if (input.installmentAmount > payment.pending_amount) {
+        setError("El abono no puede superar el saldo pendiente.");
+        return null;
+      }
+
+      setSaving(true);
+      setError(null);
+      try {
+        const newAmount = payment.amount + input.installmentAmount;
+        const newPendingAmount = Math.max(
+          0,
+          payment.pending_amount - input.installmentAmount
+        );
+
+        const installmentLog = `[Abono ${formatCurrency(
+          input.installmentAmount
+        )} el ${input.paidOn} (${getPaymentMethodLabel(input.paymentMethod)})${
+          input.notes?.trim() ? `: ${input.notes.trim()}` : ""
+        }]`;
+
+        const updatedNotes = [payment.notes, installmentLog]
+          .filter(Boolean)
+          .join(" · ");
+
+        const updatedReference =
+          input.reference?.trim() || payment.reference || null;
+
+        const { error: updateError } = await supabase
+          .from("payments")
+          .update({
+            amount: newAmount,
+            pending_amount: newPendingAmount,
+            paid_on: input.paidOn,
+            payment_method: input.paymentMethod,
+            reference: updatedReference,
+            notes: updatedNotes,
+          })
+          .eq("id", payment.id)
+          .eq("organization_id", organizationId);
+
+        if (updateError) throw updateError;
+
+        await fetchPayments();
+
+        return {
+          ...payment,
+          amount: newAmount,
+          pending_amount: newPendingAmount,
+          paid_on: input.paidOn,
+          payment_method: input.paymentMethod,
+          reference: updatedReference,
+          notes: updatedNotes,
+        };
+      } catch (err: any) {
+        setError(err?.message || "Error al registrar el abono");
+        return null;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [organizationId, fetchPayments, supabase]
   );
 
   const deletePayment = useCallback(
@@ -291,7 +371,10 @@ export function usePayments(
         .lte("paid_on", monthEnd);
 
       if (error) throw error;
-      const total = (data || []).reduce((acc: number, item: any) => acc + (Number(item.amount) || 0), 0);
+      const total = (data || []).reduce(
+        (acc: number, item: any) => acc + (Number(item.amount) || 0),
+        0
+      );
       setCurrentMonthTotal(total);
     } catch {
       // silent
@@ -316,6 +399,7 @@ export function usePayments(
     monthlyTotal: currentMonthTotal,
     createPayment,
     updatePayment,
+    registerInstallment,
     deletePayment,
     refreshPayments: () => {
       fetchPayments();
@@ -324,4 +408,3 @@ export function usePayments(
     clearError: () => setError(null),
   };
 }
-

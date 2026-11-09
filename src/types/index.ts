@@ -49,6 +49,7 @@ export interface Payment {
   organization_id: string;
   member_id: string;
   amount: number;
+  pending_amount: number;
   paid_on: string;
   payment_type: PaymentType;
   payment_method: PaymentMethod;
@@ -76,6 +77,7 @@ export interface MemberPaymentSummary {
   memberStatus: MemberStatus;
   lastPaymentId: string | null;
   lastAmount: number | null;
+  lastPendingAmount: number | null;
   lastPaidOn: string | null;
   lastPaymentType: PaymentType | null;
   lastPaymentMethod: PaymentMethod | null;
@@ -86,6 +88,7 @@ export interface MemberPaymentSummary {
 export interface PaymentDraft {
   memberId: string;
   amount: number;
+  pendingAmount?: number;
   paidOn: string;
   paymentType: PaymentType;
   paymentMethod: PaymentMethod;
@@ -95,9 +98,20 @@ export interface PaymentDraft {
   notes?: string | null;
 }
 
+export interface InstallmentInput {
+  paymentId: string;
+  installmentAmount: number;
+  paidOn: string;
+  paymentMethod: PaymentMethod;
+  reference?: string | null;
+  notes?: string | null;
+}
+
 export interface PaymentReceiptData {
   memberName: string;
   amount: number;
+  pendingAmount?: number;
+  totalPeriodAmount?: number;
   paidOn: string;
   paymentType: string;
   paymentMethod: string;
@@ -106,5 +120,17 @@ export interface PaymentReceiptData {
   reference?: string | null;
   receiptNumber?: string | null;
   memberDocument?: string | null;
+}
+
+export interface PaymentSettingValue {
+  AmountMonth: number;
+  AmountBiweek: number;
+  AmountDay: number;
+}
+
+export interface AppConfigurationRow {
+  Id: string;
+  SettingName: string;
+  value: Record<string, unknown>;
 }
 

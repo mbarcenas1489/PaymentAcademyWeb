@@ -22,6 +22,7 @@ import {
   MenuItem,
   Card,
   InputAdornment,
+  Chip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -34,6 +35,7 @@ import {
   PaymentMethod,
   PaymentType,
   PaymentSummary,
+  PaymentSettingValue,
 } from "@/types";
 import {
   formatCurrency,
@@ -49,6 +51,7 @@ interface PaymentFormDialogProps {
   members: Member[];
   initialMember?: Member | null;
   editingPayment?: PaymentSummary | null;
+  paymentSetting: PaymentSettingValue;
   onSave: (draft: PaymentDraft, paymentId?: string) => Promise<string | null>;
   saving: boolean;
 }
@@ -75,6 +78,7 @@ export default function PaymentFormDialog({
   members,
   initialMember,
   editingPayment,
+  paymentSetting,
   onSave,
   saving,
 }: PaymentFormDialogProps) {
@@ -103,6 +107,14 @@ export default function PaymentFormDialog({
 
   const [error, setError] = useState<string | null>(null);
 
+  const expectedMonthlyAmount = Number(paymentSetting?.AmountMonth || 20);
+  const parsedAmount = parseFloat(amount.replace(/,/g, ".")) || 0;
+  const computedPending =
+    parsedAmount > 0 && parsedAmount < expectedMonthlyAmount
+      ? Number((expectedMonthlyAmount - parsedAmount).toFixed(2))
+      : 0;
+  const isAutoPartial = computedPending > 0;
+
   // Initialize form state
   useEffect(() => {
     if (!open) return;
@@ -111,8 +123,9 @@ export default function PaymentFormDialog({
 
     if (editingPayment) {
       const mem = members.find((m) => m.id === editingPayment.member_id) || null;
+      const existingPaid = Number(editingPayment.amount || 0);
       setSelectedMember(mem);
-      setAmount(String(editingPayment.amount));
+      setAmount(String(existingPaid));
       setPaidOn(editingPayment.paid_on || today);
       setPaymentType(editingPayment.payment_type);
       setPaymentMethod(editingPayment.payment_method);
@@ -129,7 +142,7 @@ export default function PaymentFormDialog({
         setSelectedMember(null);
         setCurrentStep(1);
       }
-      setAmount("");
+      setAmount(String(paymentSetting?.AmountMonth || 20));
       setPaidOn(today);
       setPaymentType("monthly_fee");
       setPaymentMethod("cash");
@@ -140,7 +153,7 @@ export default function PaymentFormDialog({
     }
     setError(null);
     setMemberSearch("");
-  }, [open, editingPayment, initialMember, members]);
+  }, [open, editingPayment, initialMember, members, paymentSetting?.AmountMonth]);
 
   // Handle auto updating validUntil when validFrom changes
   const handleValidFromChange = (newFrom: string) => {
@@ -160,7 +173,6 @@ export default function PaymentFormDialog({
       return true;
     }
     if (step === 2) {
-      const parsedAmount = parseFloat(amount.replace(/,/g, "."));
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
         setError("Ingresa un valor mayor que cero.");
         return false;
@@ -211,10 +223,10 @@ export default function PaymentFormDialog({
       return;
     }
 
-    const parsedAmount = parseFloat(amount.replace(/,/g, "."));
     const draft: PaymentDraft = {
       memberId: selectedMember.id,
       amount: parsedAmount,
+      pendingAmount: computedPending,
       paidOn,
       paymentType,
       paymentMethod,
@@ -364,7 +376,7 @@ export default function PaymentFormDialog({
         {currentStep === 2 && (
           <Box>
             {selectedMember && (
-              <Box sx={{ p: 1.5, mb: 2, borderRadius: 2, backgroundColor: "action.hover" }}>
+              <Box sx={{ p: 1.5, mb: 1.5, borderRadius: 2, backgroundColor: "action.hover" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                   Miembro a pagar:
                 </Typography>
@@ -374,13 +386,28 @@ export default function PaymentFormDialog({
               </Box>
             )}
 
+            {/* Monthly Tariff Reference from PlaymentSetting */}
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center", mb: 0.5 }}>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
+                Tarifa mensual configurada:
+              </Typography>
+              <Chip
+                label={`Mensualidad: ${formatCurrency(paymentSetting.AmountMonth)}`}
+                size="small"
+                color={parsedAmount === paymentSetting.AmountMonth ? "primary" : "default"}
+                variant={parsedAmount === paymentSetting.AmountMonth ? "filled" : "outlined"}
+                onClick={() => setAmount(String(paymentSetting.AmountMonth))}
+                sx={{ fontWeight: 700, cursor: "pointer" }}
+              />
+            </Box>
+
             <TextField
               margin="normal"
               required
               fullWidth
-              label="Valor *"
+              label="Valor recibido"
               type="number"
-              placeholder="Ej: 120000"
+              placeholder={`Ej: ${expectedMonthlyAmount}`}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               disabled={saving}
@@ -392,11 +419,56 @@ export default function PaymentFormDialog({
               autoFocus
             />
 
+            {/* Automatic Partial Payment Detection Banner */}
+            {parsedAmount > 0 && (
+              <Box
+                sx={{
+                  mt: 0.5,
+                  mb: 1,
+                  p: 1.5,
+                  borderRadius: 2,
+                  backgroundColor: isAutoPartial ? "#FEF3C7" : "#D1FAE5",
+                  color: isAutoPartial ? "#B45309" : "#065F46",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 1,
+                }}
+              >
+                {isAutoPartial ? (
+                  <>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                        Abono parcial detectado automáticamente
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", fontWeight: 600 }}>
+                        Valor mensual: {formatCurrency(expectedMonthlyAmount)} · Abono hoy:{" "}
+                        {formatCurrency(parsedAmount)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: "right" }}>
+                      <Typography variant="caption" sx={{ display: "block", fontWeight: 700 }}>
+                        Saldo pendiente:
+                      </Typography>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
+                        {formatCurrency(computedPending)}
+                      </Typography>
+                    </Box>
+                  </>
+                ) : (
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    ✅ Pago mensual completo ({formatCurrency(expectedMonthlyAmount)})
+                  </Typography>
+                )}
+              </Box>
+            )}
+
             <TextField
               margin="normal"
               required
               fullWidth
-              label="Fecha de pago *"
+              label="Fecha de pago"
               type="date"
               value={paidOn}
               onChange={(e) => setPaidOn(e.target.value)}
@@ -451,7 +523,7 @@ export default function PaymentFormDialog({
               margin="normal"
               required
               fullWidth
-              label="Válido desde *"
+              label="Válido desde"
               type="date"
               value={validFrom}
               onChange={(e) => handleValidFromChange(e.target.value)}
@@ -463,7 +535,7 @@ export default function PaymentFormDialog({
               margin="normal"
               required
               fullWidth
-              label="Válido hasta *"
+              label="Válido hasta"
               type="date"
               value={validUntil}
               onChange={(e) => setValidUntil(e.target.value)}
@@ -510,9 +582,24 @@ export default function PaymentFormDialog({
               <Typography variant="body2">
                 👤 <strong>Miembro:</strong> {selectedMember?.full_name}
               </Typography>
-              <Typography variant="body2">
-                💰 <strong>Valor:</strong> {formatCurrency(parseFloat(amount) || 0)}
-              </Typography>
+              {isAutoPartial ? (
+                <>
+                  <Typography variant="body2">
+                    📊 <strong>Valor mensual configurado:</strong>{" "}
+                    {formatCurrency(expectedMonthlyAmount)}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "success.main" }}>
+                    💰 <strong>Abonado hoy:</strong> {formatCurrency(parsedAmount)}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "warning.dark", fontWeight: 700 }}>
+                    ⚠️ <strong>Saldo pendiente:</strong> {formatCurrency(computedPending)}
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body2">
+                  💰 <strong>Valor:</strong> {formatCurrency(parsedAmount)}
+                </Typography>
+              )}
               <Typography variant="body2">
                 🏷 <strong>Concepto:</strong> {getPaymentTypeLabel(paymentType)} (
                 {getPaymentMethodLabel(paymentMethod)})

@@ -60,6 +60,7 @@ export function useMemberSummaries(organizationId: string | null) {
           memberStatus: m.status,
           lastPaymentId: lastP?.id || null,
           lastAmount: lastP ? Number(lastP.amount) : null,
+          lastPendingAmount: lastP ? Number(lastP.pending_amount || 0) : null,
           lastPaidOn: lastP?.paid_on || null,
           lastPaymentType: lastP?.payment_type || null,
           lastPaymentMethod: lastP?.payment_method || null,
