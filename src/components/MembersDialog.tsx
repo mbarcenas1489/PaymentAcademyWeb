@@ -19,14 +19,19 @@ import {
   Chip,
   InputAdornment,
   Divider,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CloseIcon from "@mui/icons-material/Close";
 import PaymentIcon from "@mui/icons-material/Payment";
 import HistoryIcon from "@mui/icons-material/History";
-import { Member } from "@/types";
-import { formatDate, getMemberStatusLabel } from "@/utils/formatters";
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Member, MemberCustomPricing } from "@/types";
+import { formatDate, getMemberStatusLabel, formatCurrency } from "@/utils/formatters";
 
 interface MembersDialogProps {
   open: boolean;
@@ -35,9 +40,13 @@ interface MembersDialogProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   loading: boolean;
+  memberPricingMap?: Map<string, MemberCustomPricing>;
   onOpenRegisterMember: () => void;
   onViewMemberPayments: (member: Member) => void;
   onNewPaymentForMember: (member: Member) => void;
+  onEditMemberTariff?: (member: Member) => void;
+  onEditMember?: (member: Member) => void;
+  onDeleteMember?: (member: Member) => void;
 }
 
 export default function MembersDialog({
@@ -47,9 +56,13 @@ export default function MembersDialog({
   searchQuery,
   onSearchChange,
   loading,
+  memberPricingMap,
   onOpenRegisterMember,
   onViewMemberPayments,
   onNewPaymentForMember,
+  onEditMemberTariff,
+  onEditMember,
+  onDeleteMember,
 }: MembersDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -108,6 +121,12 @@ export default function MembersDialog({
           <List sx={{ maxHeight: 420, overflow: "auto" }}>
             {members.map((member, index) => {
               const contact = [member.phone, member.email].filter(Boolean).join(" · ");
+              const customPricing = memberPricingMap?.get(member.id);
+              const hasCustom = Boolean(
+                customPricing &&
+                  ((customPricing.AmountMonthCordoba && customPricing.AmountMonthCordoba > 0) ||
+                    (customPricing.AmountMonthDollar && customPricing.AmountMonthDollar > 0))
+              );
 
               return (
                 <React.Fragment key={member.id}>
@@ -127,7 +146,7 @@ export default function MembersDialog({
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary" }}>
                             {member.full_name}
                           </Typography>
@@ -152,6 +171,15 @@ export default function MembersDialog({
                                   : "#BA1A1A",
                             }}
                           />
+                          {hasCustom && (
+                            <Chip
+                              label="Tarifa personalizada"
+                              size="small"
+                              color="secondary"
+                              variant="outlined"
+                              sx={{ height: 20, fontSize: "0.65rem", fontWeight: 700 }}
+                            />
+                          )}
                         </Box>
                       }
                       secondary={
@@ -160,6 +188,25 @@ export default function MembersDialog({
                             {member.document_number ? `Doc: ${member.document_number} · ` : ""}
                             {contact || "Sin datos de contacto"}
                           </Typography>
+                          {hasCustom ? (
+                            <Typography variant="caption" sx={{ color: "secondary.main", fontWeight: 700, display: "block" }}>
+                              Tarifa asignada:{" "}
+                              {[
+                                customPricing?.AmountMonthCordoba
+                                  ? formatCurrency(customPricing.AmountMonthCordoba, "NIO")
+                                  : null,
+                                customPricing?.AmountMonthDollar
+                                  ? formatCurrency(customPricing.AmountMonthDollar, "USD")
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" / ")}
+                            </Typography>
+                          ) : (
+                            <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                              Tarifa general del sistema
+                            </Typography>
+                          )}
                           <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                             Ingreso: {formatDate(member.joined_on)}
                           </Typography>
@@ -167,7 +214,40 @@ export default function MembersDialog({
                       }
                     />
 
-                    <Box sx={{ display: "flex", gap: 1, alignSelf: "center" }}>
+                    <Box sx={{ display: "flex", gap: 0.75, alignSelf: "center", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+                      {onEditMember && (
+                        <Tooltip title="Editar datos">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => onEditMember(member)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {onDeleteMember && (
+                        <Tooltip title="Eliminar miembro">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => onDeleteMember(member)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {onEditMemberTariff && (
+                        <Button
+                          size="small"
+                          variant="text"
+                          color={hasCustom ? "secondary" : "inherit"}
+                          startIcon={<MonetizationOnIcon />}
+                          onClick={() => onEditMemberTariff(member)}
+                        >
+                          Tarifa
+                        </Button>
+                      )}
                       <Button
                         size="small"
                         variant="outlined"

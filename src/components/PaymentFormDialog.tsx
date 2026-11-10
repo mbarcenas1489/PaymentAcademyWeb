@@ -37,6 +37,7 @@ import {
   PaymentSummary,
   PaymentSettingValue,
   PaymentCurrency,
+  MemberCustomPricing,
 } from "@/types";
 import {
   formatCurrency,
@@ -55,6 +56,7 @@ interface PaymentFormDialogProps {
   initialMember?: Member | null;
   editingPayment?: PaymentSummary | null;
   paymentSetting: PaymentSettingValue;
+  memberPricingMap?: Map<string, MemberCustomPricing>;
   onSave: (draft: PaymentDraft, paymentId?: string) => Promise<string | null>;
   saving: boolean;
 }
@@ -82,6 +84,7 @@ export default function PaymentFormDialog({
   initialMember,
   editingPayment,
   paymentSetting,
+  memberPricingMap,
   onSave,
   saving,
 }: PaymentFormDialogProps) {
@@ -111,10 +114,19 @@ export default function PaymentFormDialog({
 
   const [error, setError] = useState<string | null>(null);
 
+  // Resolution with Priority: MemberConfiguration > Global AppConfiguration
+  const memberPricing = selectedMember ? memberPricingMap?.get(selectedMember.id) : null;
+  const hasCustomMemberTariff = Boolean(
+    memberPricing &&
+      ((currency === "USD" && memberPricing.AmountMonthDollar && memberPricing.AmountMonthDollar > 0) ||
+        (currency === "NIO" && memberPricing.AmountMonthCordoba && memberPricing.AmountMonthCordoba > 0))
+  );
+
   const expectedMonthlyAmount =
     currency === "USD"
-      ? Number(paymentSetting?.AmountMonthDollar || 20)
-      : Number(paymentSetting?.AmountMonthCordoba || 750);
+      ? Number(memberPricing?.AmountMonthDollar ?? paymentSetting?.AmountMonthDollar ?? 20)
+      : Number(memberPricing?.AmountMonthCordoba ?? paymentSetting?.AmountMonthCordoba ?? 750);
+
   const parsedAmount = parseFloat(amount.replace(/,/g, ".")) || 0;
   const computedPending =
     parsedAmount > 0 && parsedAmount < expectedMonthlyAmount
@@ -144,15 +156,15 @@ export default function PaymentFormDialog({
       setNotes(editingPayment.notes || "");
       setCurrentStep(2);
     } else {
-      if (initialMember) {
-        setSelectedMember(initialMember);
-        setCurrentStep(2);
-      } else {
-        setSelectedMember(null);
-        setCurrentStep(1);
-      }
+      const targetMem = initialMember || null;
+      setSelectedMember(targetMem);
+      setCurrentStep(targetMem ? 2 : 1);
+
+      const pricing = targetMem ? memberPricingMap?.get(targetMem.id) : null;
+      const initialExpected = pricing?.AmountMonthCordoba ?? paymentSetting?.AmountMonthCordoba ?? 750;
+
       setCurrency("NIO");
-      setAmount(String(paymentSetting?.AmountMonthCordoba || 750));
+      setAmount(String(initialExpected));
       setPaidOn(today);
       setPaymentType("monthly_fee");
       setPaymentMethod("cash");
@@ -169,18 +181,19 @@ export default function PaymentFormDialog({
     initialMember,
     members,
     paymentSetting?.AmountMonthCordoba,
+    memberPricingMap,
   ]);
 
   const handleCurrencyChange = (newCurrency: PaymentCurrency) => {
     setCurrency(newCurrency);
     const prevExpected =
       currency === "USD"
-        ? Number(paymentSetting?.AmountMonthDollar || 20)
-        : Number(paymentSetting?.AmountMonthCordoba || 750);
+        ? Number(memberPricing?.AmountMonthDollar ?? paymentSetting?.AmountMonthDollar ?? 20)
+        : Number(memberPricing?.AmountMonthCordoba ?? paymentSetting?.AmountMonthCordoba ?? 750);
     const nextExpected =
       newCurrency === "USD"
-        ? Number(paymentSetting?.AmountMonthDollar || 20)
-        : Number(paymentSetting?.AmountMonthCordoba || 750);
+        ? Number(memberPricing?.AmountMonthDollar ?? paymentSetting?.AmountMonthDollar ?? 20)
+        : Number(memberPricing?.AmountMonthCordoba ?? paymentSetting?.AmountMonthCordoba ?? 750);
     if (!amount || parsedAmount === prevExpected) {
       setAmount(String(nextExpected));
     }
@@ -378,6 +391,12 @@ export default function PaymentFormDialog({
                     onClick={() => {
                       setSelectedMember(m);
                       setError(null);
+                      const pricing = memberPricingMap?.get(m.id);
+                      const expected =
+                        currency === "USD"
+                          ? Number(pricing?.AmountMonthDollar ?? paymentSetting?.AmountMonthDollar ?? 20)
+                          : Number(pricing?.AmountMonthCordoba ?? paymentSetting?.AmountMonthCordoba ?? 750);
+                      setAmount(String(expected));
                     }}
                     sx={{
                       cursor: "pointer",
@@ -452,14 +471,28 @@ export default function PaymentFormDialog({
               </Box>
 
               <Chip
-                label={`Mensualidad: ${formatCurrency(expectedMonthlyAmount, currency)}`}
+                label={`Mensualidad: ${formatCurrency(expectedMonthlyAmount, currency)}${
+                  hasCustomMemberTariff ? " (Personalizada)" : " (General)"
+                }`}
                 size="small"
-                color={parsedAmount === expectedMonthlyAmount ? "primary" : "default"}
+                color={
+                  hasCustomMemberTariff
+                    ? "secondary"
+                    : parsedAmount === expectedMonthlyAmount
+                    ? "primary"
+                    : "default"
+                }
                 variant={parsedAmount === expectedMonthlyAmount ? "filled" : "outlined"}
                 onClick={() => setAmount(String(expectedMonthlyAmount))}
                 sx={{ fontWeight: 700, cursor: "pointer" }}
               />
             </Box>
+
+            {hasCustomMemberTariff && (
+              <Typography variant="caption" sx={{ color: "secondary.main", fontWeight: 700, display: "block", mb: 0.5 }}>
+                💡 Se aplicó con prioridad la tarifa personalizada configurada para {selectedMember?.full_name}.
+              </Typography>
+            )}
 
             <TextField
               margin="normal"

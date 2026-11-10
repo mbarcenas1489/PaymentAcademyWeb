@@ -40,15 +40,23 @@ export function useMemberSummaries(organizationId: string | null) {
 
       if (paymentsError) throw paymentsError;
 
+      const activeMembers = (members || []).filter(
+        (m: any) => m.IsDelete !== true && m.isdelete !== true
+      );
+
+      const activePayments = (payments || []).filter(
+        (p: any) => p.IsDelete !== true && p.isdelete !== true
+      );
+
       // Group payments by member_id and pick the latest one
       const latestPaymentByMember = new Map<string, any>();
-      for (const p of payments || []) {
+      for (const p of activePayments) {
         if (!latestPaymentByMember.has(p.member_id)) {
           latestPaymentByMember.set(p.member_id, p);
         }
       }
 
-      const result: MemberPaymentSummary[] = (members || []).map((m: any) => {
+      const result: MemberPaymentSummary[] = activeMembers.map((m: any) => {
         const lastP = latestPaymentByMember.get(m.id);
         return {
           memberId: m.id,

@@ -21,12 +21,16 @@ import PaymentFormDialog from "./PaymentFormDialog";
 import InstallmentDialog from "./InstallmentDialog";
 import ReceiptModal from "./ReceiptModal";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
+import EditMemberTariffDialog from "./EditMemberTariffDialog";
+import EditMemberDialog from "./EditMemberDialog";
+import ConfirmDeleteMemberDialog from "./ConfirmDeleteMemberDialog";
 
 import { useOrganization } from "@/hooks/useOrganization";
 import { useMemberSummaries } from "@/hooks/useMemberSummaries";
 import { useMembers } from "@/hooks/useMembers";
 import { usePayments } from "@/hooks/usePayments";
 import { useAppConfiguration } from "@/hooks/useAppConfiguration";
+import { useMemberConfigurations } from "@/hooks/useMemberConfigurations";
 import {
   Member,
   MemberPaymentSummary,
@@ -34,6 +38,8 @@ import {
   PaymentDraft,
   PaymentReceiptData,
   InstallmentInput,
+  MemberCustomPricing,
+  UpdateMemberInput,
 } from "@/types";
 import { User } from "@supabase/supabase-js";
 import { getPaymentTypeLabel, getPaymentMethodLabel } from "@/utils/formatters";
@@ -53,9 +59,15 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
   const [openInstallmentDialog, setOpenInstallmentDialog] = useState<boolean>(false);
   const [openReceiptModal, setOpenReceiptModal] = useState<boolean>(false);
   const [openConfirmDelete, setOpenConfirmDelete] = useState<boolean>(false);
+  const [openEditTariffDialog, setOpenEditTariffDialog] = useState<boolean>(false);
+  const [openEditMemberDialog, setOpenEditMemberDialog] = useState<boolean>(false);
+  const [openDeleteMemberDialog, setOpenDeleteMemberDialog] = useState<boolean>(false);
 
   // Form selections
   const [targetMember, setTargetMember] = useState<Member | null>(null);
+  const [tariffMemberTarget, setTariffMemberTarget] = useState<Member | null>(null);
+  const [editingMemberTarget, setEditingMemberTarget] = useState<Member | null>(null);
+  const [deletingMemberTarget, setDeletingMemberTarget] = useState<Member | null>(null);
   const [editingPayment, setEditingPayment] = useState<PaymentSummary | null>(null);
   const [installmentTarget, setInstallmentTarget] = useState<PaymentSummary | null>(null);
   const [deletingPayment, setDeletingPayment] = useState<PaymentSummary | null>(null);
@@ -104,6 +116,8 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
     saving: memberSaving,
     error: memberError,
     createMember,
+    updateMember,
+    deleteMember,
     refreshMembers,
   } = useMembers(organizationId);
 
@@ -131,17 +145,109 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
     refreshConfiguration,
   } = useAppConfiguration();
 
+  const {
+    memberPricingMap,
+    saving: tariffSaving,
+    saveMemberPricing,
+    removeMemberPricing,
+    refreshMemberConfigurations,
+  } = useMemberConfigurations(organizationId);
+
   const handleRefreshAll = () => {
     refreshOrganization();
     refreshSummaries();
     refreshMembers();
     refreshPayments();
     refreshConfiguration();
+    refreshMemberConfigurations();
     setSnackbar({
       open: true,
       message: "Datos actualizados correctamente.",
       severity: "info",
     });
+  };
+
+  const handleOpenEditTariff = (member: Member) => {
+    setTariffMemberTarget(member);
+    setOpenEditTariffDialog(true);
+  };
+
+  const handleSaveMemberTariff = async (
+    memberId: string,
+    pricing: MemberCustomPricing
+  ): Promise<boolean> => {
+    const ok = await saveMemberPricing(memberId, pricing);
+    if (ok) {
+      setSnackbar({
+        open: true,
+        message: "Tarifa personalizada actualizada.",
+        severity: "success",
+      });
+    }
+    return ok;
+  };
+
+  const handleRemoveMemberTariff = async (memberId: string): Promise<boolean> => {
+    const ok = await removeMemberPricing(memberId);
+    if (ok) {
+      setSnackbar({
+        open: true,
+        message: "Se restableció a la tarifa global.",
+        severity: "info",
+      });
+    }
+    return ok;
+  };
+
+  const handleOpenEditMember = (member: Member) => {
+    setEditingMemberTarget(member);
+    setOpenEditMemberDialog(true);
+  };
+
+  const handleOpenEditMemberFromSummary = (summary: MemberPaymentSummary) => {
+    const found = members.find((m) => m.id === summary.memberId);
+    if (found) {
+      setEditingMemberTarget(found);
+      setOpenEditMemberDialog(true);
+    }
+  };
+
+  const handleSaveEditMember = async (
+    memberId: string,
+    input: UpdateMemberInput
+  ): Promise<boolean> => {
+    const ok = await updateMember(memberId, input);
+    if (ok) {
+      setSnackbar({
+        open: true,
+        message: "Datos del miembro actualizados correctamente.",
+        severity: "success",
+      });
+      refreshSummaries();
+    }
+    return ok;
+  };
+
+  const handleOpenDeleteMember = (member: Member) => {
+    setDeletingMemberTarget(member);
+    setOpenDeleteMemberDialog(true);
+  };
+
+  const handleConfirmDeleteMember = async () => {
+    if (!deletingMemberTarget) return;
+    const ok = await deleteMember(deletingMemberTarget.id);
+    if (ok) {
+      setSnackbar({
+        open: true,
+        message: "Miembro eliminado correctamente.",
+        severity: "success",
+      });
+      refreshSummaries();
+      refreshPayments();
+      refreshMemberConfigurations();
+      setOpenDeleteMemberDialog(false);
+      setDeletingMemberTarget(null);
+    }
   };
 
   // Handlers for Member summary actions
@@ -422,6 +528,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
               canManagePayments ? handleOpenInstallmentForSummary : undefined
             }
             onOpenNewMember={() => setOpenRegisterMember(true)}
+            onEditMember={handleOpenEditMemberFromSummary}
           />
         ) : (
           <MovementsTab
@@ -472,6 +579,10 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
         searchQuery={memberSearch}
         onSearchChange={setMemberSearch}
         loading={membersLoading}
+        memberPricingMap={memberPricingMap}
+        onEditMemberTariff={handleOpenEditTariff}
+        onEditMember={handleOpenEditMember}
+        onDeleteMember={handleOpenDeleteMember}
         onOpenRegisterMember={() => {
           setOpenMembersDialog(false);
           setOpenRegisterMember(true);
@@ -487,6 +598,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
       <RegisterMemberDialog
         open={openRegisterMember}
         onClose={() => setOpenRegisterMember(false)}
+        defaultPaymentSetting={paymentSetting}
         onSave={async (input) => {
           const res = await createMember(input);
           if (res) {
@@ -496,6 +608,7 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
               severity: "success",
             });
             refreshSummaries();
+            refreshMemberConfigurations();
           }
           return res;
         }}
@@ -509,8 +622,20 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
         initialMember={targetMember}
         editingPayment={editingPayment}
         paymentSetting={paymentSetting}
+        memberPricingMap={memberPricingMap}
         onSave={handleSavePayment}
         saving={paymentSaving}
+      />
+
+      <EditMemberTariffDialog
+        open={openEditTariffDialog}
+        onClose={() => setOpenEditTariffDialog(false)}
+        member={tariffMemberTarget}
+        currentPricing={tariffMemberTarget ? memberPricingMap.get(tariffMemberTarget.id) || null : null}
+        defaultPaymentSetting={paymentSetting}
+        onSave={handleSaveMemberTariff}
+        onRemove={handleRemoveMemberTariff}
+        saving={tariffSaving}
       />
 
       <InstallmentDialog
@@ -534,6 +659,22 @@ export default function DashboardView({ user, onSignOut }: DashboardViewProps) {
         onClose={() => setOpenConfirmDelete(false)}
         onConfirm={handleDeleteConfirm}
         loading={paymentSaving}
+      />
+
+      <EditMemberDialog
+        open={openEditMemberDialog}
+        onClose={() => setOpenEditMemberDialog(false)}
+        member={editingMemberTarget}
+        onSave={handleSaveEditMember}
+        saving={memberSaving}
+      />
+
+      <ConfirmDeleteMemberDialog
+        open={openDeleteMemberDialog}
+        member={deletingMemberTarget}
+        onClose={() => setOpenDeleteMemberDialog(false)}
+        onConfirm={handleConfirmDeleteMember}
+        loading={memberSaving}
       />
 
       {/* Snackbar feedback */}

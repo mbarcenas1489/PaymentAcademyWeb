@@ -12,15 +12,22 @@ import {
   Box,
   CircularProgress,
   Alert,
+  Switch,
+  FormControlLabel,
+  InputAdornment,
+  Card,
 } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import { NewMemberInput, Member } from "@/types";
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
+import { NewMemberInput, Member, PaymentSettingValue } from "@/types";
+import { formatCurrency } from "@/utils/formatters";
 
 interface RegisterMemberDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: (input: NewMemberInput) => Promise<Member | null>;
   saving: boolean;
+  defaultPaymentSetting?: PaymentSettingValue;
 }
 
 export default function RegisterMemberDialog({
@@ -28,13 +35,23 @@ export default function RegisterMemberDialog({
   onClose,
   onSave,
   saving,
+  defaultPaymentSetting,
 }: RegisterMemberDialogProps) {
   const [fullName, setFullName] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Custom tariff state
+  const [isCustomTariff, setIsCustomTariff] = useState(false);
+  const [customCordoba, setCustomCordoba] = useState("");
+  const [customDollar, setCustomDollar] = useState("");
+
   const [error, setError] = useState<string | null>(null);
+
+  const defaultCordoba = defaultPaymentSetting?.AmountMonthCordoba ?? 750;
+  const defaultDollar = defaultPaymentSetting?.AmountMonthDollar ?? 20;
 
   const resetForm = () => {
     setFullName("");
@@ -42,7 +59,18 @@ export default function RegisterMemberDialog({
     setEmail("");
     setPhone("");
     setNotes("");
+    setIsCustomTariff(false);
+    setCustomCordoba("");
+    setCustomDollar("");
     setError(null);
+  };
+
+  const handleToggleCustomTariff = (checked: boolean) => {
+    setIsCustomTariff(checked);
+    if (checked) {
+      if (!customCordoba) setCustomCordoba(String(defaultCordoba));
+      if (!customDollar) setCustomDollar(String(defaultDollar));
+    }
   };
 
   const handleClose = () => {
@@ -59,12 +87,33 @@ export default function RegisterMemberDialog({
       return;
     }
 
+    let customPricing = null;
+    if (isCustomTariff) {
+      const parsedCordoba = parseFloat(customCordoba.replace(/,/g, "."));
+      const parsedDollar = parseFloat(customDollar.replace(/,/g, "."));
+
+      if (isNaN(parsedCordoba) || parsedCordoba <= 0) {
+        setError("Ingresa una tarifa válida en Córdobas (mayor a 0).");
+        return;
+      }
+      if (isNaN(parsedDollar) || parsedDollar <= 0) {
+        setError("Ingresa una tarifa válida en Dólares (mayor a 0).");
+        return;
+      }
+
+      customPricing = {
+        AmountMonthCordoba: parsedCordoba,
+        AmountMonthDollar: parsedDollar,
+      };
+    }
+
     const created = await onSave({
       fullName,
       documentNumber,
       email,
       phone,
       notes,
+      customPricing,
     });
 
     if (created) {
@@ -164,6 +213,83 @@ export default function RegisterMemberDialog({
             onChange={(e) => setNotes(e.target.value)}
             disabled={saving}
           />
+
+          {/* Custom tariff configuration section */}
+          <Card
+            variant="outlined"
+            sx={{
+              mt: 2,
+              p: 2,
+              borderRadius: 3,
+              backgroundColor: isCustomTariff ? "action.hover" : "background.paper",
+              borderColor: isCustomTariff ? "primary.main" : "divider",
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isCustomTariff}
+                  onChange={(e) => handleToggleCustomTariff(e.target.checked)}
+                  color="primary"
+                  disabled={saving}
+                />
+              }
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
+                  <MonetizationOnIcon
+                    fontSize="small"
+                    color={isCustomTariff ? "primary" : "action"}
+                  />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    ¿Asignar tarifa personalizada a este miembro?
+                  </Typography>
+                </Box>
+              }
+            />
+            <Typography variant="caption" sx={{ color: "text.secondary", display: "block", ml: 4, mt: -0.5 }}>
+              {isCustomTariff
+                ? "Este miembro tendrá un cobro mensual específico que tendrá prioridad sobre la configuración general."
+                : `Desactivado: usará la tarifa mensual general (${formatCurrency(defaultCordoba, "NIO")} / ${formatCurrency(defaultDollar, "USD")}).`}
+            </Typography>
+
+            {isCustomTariff && (
+              <Box sx={{ display: "flex", gap: 2, mt: 2, pt: 1, borderTop: 1, borderColor: "divider" }}>
+                <TextField
+                  margin="dense"
+                  required
+                  fullWidth
+                  label="Tarifa en Córdobas"
+                  type="number"
+                  placeholder={`Ej: ${defaultCordoba}`}
+                  value={customCordoba}
+                  onChange={(e) => setCustomCordoba(e.target.value)}
+                  disabled={saving}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start">C$</InputAdornment>,
+                    },
+                  }}
+                />
+
+                <TextField
+                  margin="dense"
+                  required
+                  fullWidth
+                  label="Tarifa en Dólares"
+                  type="number"
+                  placeholder={`Ej: ${defaultDollar}`}
+                  value={customDollar}
+                  onChange={(e) => setCustomDollar(e.target.value)}
+                  disabled={saving}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    },
+                  }}
+                />
+              </Box>
+            )}
+          </Card>
 
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1.5 }}>
             💡 Se registrará como miembro activo con la fecha de ingreso de hoy.

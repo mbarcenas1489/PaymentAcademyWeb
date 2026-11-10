@@ -36,6 +36,12 @@ export interface Member {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  IsDelete?: boolean;
+}
+
+export interface MemberCustomPricing {
+  AmountMonthCordoba?: number;
+  AmountMonthDollar?: number;
 }
 
 export interface NewMemberInput {
@@ -44,6 +50,16 @@ export interface NewMemberInput {
   email?: string;
   phone?: string;
   notes?: string;
+  customPricing?: MemberCustomPricing | null;
+}
+
+export interface UpdateMemberInput {
+  fullName: string;
+  documentNumber?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  status?: MemberStatus;
+  notes?: string | null;
 }
 
 export interface Payment {
@@ -63,6 +79,7 @@ export interface Payment {
   created_at: string;
   member_name?: string;
   member_document?: string | null;
+  IsDelete?: boolean;
 }
 
 export interface PaymentSummary extends Payment {
@@ -101,6 +118,7 @@ export interface PaymentDraft {
   validUntil: string;
   reference?: string | null;
   notes?: string | null;
+  IsDelete?: boolean;
 }
 
 export interface InstallmentInput {
@@ -137,6 +155,13 @@ export interface PaymentSettingValue {
 
 export interface AppConfigurationRow {
   Id: string;
+  SettingName: string;
+  value: Record<string, unknown>;
+}
+
+export interface MemberConfigurationRow {
+  Id: string;
+  MemberId: string;
   SettingName: string;
   value: Record<string, unknown>;
 }

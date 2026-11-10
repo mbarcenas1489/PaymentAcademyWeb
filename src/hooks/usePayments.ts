@@ -63,7 +63,11 @@ export function usePayments(
 
       if (queryError) throw queryError;
 
-      const formatted: PaymentSummary[] = (data || []).map((p: any) => ({
+      const activeData = (data || []).filter(
+        (p: any) => p.IsDelete !== true && p.isdelete !== true
+      );
+
+      const formatted: PaymentSummary[] = activeData.map((p: any) => ({
         id: p.id,
         organization_id: p.organization_id,
         member_id: p.member_id,
@@ -80,6 +84,7 @@ export function usePayments(
         created_at: p.created_at,
         memberName: p.members?.full_name || "Desconocido",
         memberDocument: p.members?.document_number || null,
+        IsDelete: p.IsDelete ?? false,
       }));
 
       setPayments(formatted);
@@ -105,7 +110,7 @@ export function usePayments(
 
       let query = supabase
         .from("payments")
-        .select("id")
+        .select("id, IsDelete")
         .eq("organization_id", organizationId)
         .eq("member_id", memberId)
         .lte("valid_from", validUntil)
@@ -117,7 +122,8 @@ export function usePayments(
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).length > 0;
+      const active = (data || []).filter((p: any) => p.IsDelete !== true && p.isdelete !== true);
+      return active.length > 0;
     },
     [organizationId, supabase]
   );
@@ -167,6 +173,7 @@ export function usePayments(
           valid_until: draft.validUntil,
           reference: draft.reference?.trim() || null,
           notes: combinedNotes,
+          IsDelete: false,
         };
 
         const { data, error: insertError } = await supabase
@@ -335,13 +342,21 @@ export function usePayments(
       setSaving(true);
       setError(null);
       try {
-        const { error: deleteError } = await supabase
+        let updateRes = await supabase
           .from("payments")
-          .delete()
+          .update({ IsDelete: true })
           .eq("id", paymentId)
           .eq("organization_id", organizationId);
 
-        if (deleteError) throw deleteError;
+        if (updateRes.error) {
+          updateRes = await supabase
+            .from("payments")
+            .update({ isdelete: true })
+            .eq("id", paymentId)
+            .eq("organization_id", organizationId);
+        }
+
+        if (updateRes.error) throw updateRes.error;
 
         setPayments((prev) => prev.filter((p) => p.id !== paymentId));
         return true;
@@ -371,7 +386,7 @@ export function usePayments(
 
       const { data, error } = await supabase
         .from("payments")
-        .select("amount, currency")
+        .select("amount, currency, IsDelete")
         .eq("organization_id", organizationId)
         .gte("paid_on", monthStart)
         .lte("paid_on", monthEnd);
@@ -381,6 +396,7 @@ export function usePayments(
       let totalNIO = 0;
       let totalUSD = 0;
       for (const item of data || []) {
+        if ((item as any).IsDelete === true || (item as any).isdelete === true) continue;
         const amt = Number((item as any).amount) || 0;
         const curr = (item as any).currency;
         if (curr === "USD") {

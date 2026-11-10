@@ -15,6 +15,8 @@ import {
   CircularProgress,
   Avatar,
   Divider,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
@@ -24,6 +26,7 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import PaymentsIcon from "@mui/icons-material/Payments";
+import EditIcon from "@mui/icons-material/Edit";
 import { MemberPaymentSummary } from "@/types";
 import {
   formatCurrency,
@@ -46,6 +49,7 @@ interface SummaryTabProps {
   onNewPaymentForMember: (member: MemberPaymentSummary) => void;
   onInstallmentForMember?: (member: MemberPaymentSummary) => void;
   onOpenNewMember: () => void;
+  onEditMember?: (member: MemberPaymentSummary) => void;
 }
 
 export default function SummaryTab({
@@ -59,6 +63,7 @@ export default function SummaryTab({
   onNewPaymentForMember,
   onInstallmentForMember,
   onOpenNewMember,
+  onEditMember,
 }: SummaryTabProps) {
   return (
     <Box sx={{ py: 2 }}>
@@ -223,26 +228,39 @@ export default function SummaryTab({
                         </Box>
                       </Box>
 
-                      <Chip
-                        label={getMemberStatusLabel(m.memberStatus)}
-                        size="small"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: "0.75rem",
-                          backgroundColor:
-                            m.memberStatus === "active"
-                              ? "#D1FAE5"
-                              : m.memberStatus === "frozen"
-                              ? "#FEF3C7"
-                              : "#FEE2E2",
-                          color:
-                            m.memberStatus === "active"
-                              ? "#065F46"
-                              : m.memberStatus === "frozen"
-                              ? "#B45309"
-                              : "#B91C1C",
-                        }}
-                      />
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                        {onEditMember && (
+                          <Tooltip title="Editar datos del miembro">
+                            <IconButton
+                              size="small"
+                              onClick={() => onEditMember(m)}
+                              sx={{ color: "text.secondary", "&:hover": { color: "primary.main" } }}
+                            >
+                              <EditIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        <Chip
+                          label={getMemberStatusLabel(m.memberStatus)}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                            backgroundColor:
+                              m.memberStatus === "active"
+                                ? "#D1FAE5"
+                                : m.memberStatus === "frozen"
+                                ? "#FEF3C7"
+                                : "#FEE2E2",
+                            color:
+                              m.memberStatus === "active"
+                                ? "#065F46"
+                                : m.memberStatus === "frozen"
+                                ? "#B45309"
+                                : "#B91C1C",
+                          }}
+                        />
+                      </Box>
                     </Box>
 
                     <Divider sx={{ my: 1.5 }} />
